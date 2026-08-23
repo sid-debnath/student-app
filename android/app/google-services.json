@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "609590215661",
+    "project_id": "student-mgmt-sdd2011-bddf7",
+    "storage_bucket": "student-mgmt-sdd2011-bddf7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:609590215661:android:79049cb1c7819741e4dde4",
+        "android_client_info": {
+          "package_name": "com.school.student_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLqSayzwOXDnz75vFajSY-e8G5yYId0Mo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

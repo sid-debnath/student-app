@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function schoolDoc(sid) {
+      return /databases/$(database)/documents/schools/$(sid);
+    }
+    function userPath(sid) {
+      return /databases/$(database)/documents/schools/$(sid)/users/$(request.auth.uid);
+    }
+    function hasProfile(sid) {
+      return signedIn() && exists(userPath(sid));
+    }
+    function userDoc(sid) {
+      return get(userPath(sid)).data;
+    }
+    function isAdmin(sid) {
+      return hasProfile(sid) && userDoc(sid).role == 'admin';
+    }
+    function isTeacher(sid) {
+      return hasProfile(sid) && userDoc(sid).role == 'teacher';
+    }
+    function isViewer(sid) {
+      return hasProfile(sid) && userDoc(sid).role == 'viewer';
+    }
+    function teacherOfClass(sid, classId) {
+      return isTeacher(sid) && classId in userDoc(sid).classIds;
+    }
+    function viewerOwnsStudent(sid, studentId) {
+      return isViewer(sid) && studentId in userDoc(sid).studentIds;
+    }
+    function bootstrapping(sid) {
+      return signedIn() && sid == 'default' && !exists(schoolDoc('default'));
+    }
+
+    match /schools/{sid} {
+      allow create: if bootstrapping(sid);
+      // First-time setup must be able to see that the school doc is missing.
+      allow get: if hasProfile(sid)
+        || (signedIn() && sid == 'default' && !exists(schoolDoc(sid)));
+      allow list: if hasProfile(sid);
+      allow update, delete: if isAdmin(sid);
+
+      match /users/{uid} {
+        allow read: if hasProfile(sid) && (isAdmin(sid) || request.auth.uid == uid);
+        allow create: if isAdmin(sid)
+          || (
+            bootstrapping(sid)
+            && uid == request.auth.uid
+            && request.resource.data.role == 'admin'
+            && request.resource.data.schoolId == sid
+          );
+        allow update: if isAdmin(sid)
+          || (
+            hasProfile(sid)
+            && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fcmToken'])
+          );
+        allow delete: if isAdmin(sid);
+      }
+      match /classes/{classId} {
+        allow read: if hasProfile(sid);
+        allow create: if isAdmin(sid) || bootstrapping(sid);
+        allow update, delete: if isAdmin(sid);
+      }
+      match /students/{studentId} {
+        allow read: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid) || viewerOwnsStudent(sid, studentId));
+        allow create: if isAdmin(sid) || bootstrapping(sid);
+        allow update, delete: if isAdmin(sid);
+      }
+      match /attendance/{docId} {
+        allow read: if hasProfile(sid);
+        allow write: if hasProfile(sid) && (isAdmin(sid) || teacherOfClass(sid, request.resource.data.classId));
+      }
+      match /homework/{docId} {
+        allow read: if hasProfile(sid);
+        allow create, update: if hasProfile(sid) && (isAdmin(sid) || teacherOfClass(sid, request.resource.data.classId));
+        allow delete: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+      }
+      match /timetable/{classId}/periods/{periodId} {
+        allow read: if hasProfile(sid);
+        allow write: if hasProfile(sid) && (isAdmin(sid) || teacherOfClass(sid, classId));
+      }
+      match /exams/{docId} {
+        allow read: if hasProfile(sid);
+        allow write: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+      }
+      match /marks/{docId} {
+        allow read: if hasProfile(sid);
+        allow write: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+      }
+      match /reportCards/{docId} {
+        allow read: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid) || viewerOwnsStudent(sid, resource.data.studentId));
+        allow write: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+      }
+      match /announcements/{docId} {
+        allow read: if hasProfile(sid);
+        allow write: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+      }
+      match /ptmSlots/{docId} {
+        allow read: if hasProfile(sid);
+        allow create, update: if hasProfile(sid) && (isAdmin(sid) || (isTeacher(sid) && request.resource.data.teacherId == request.auth.uid));
+        allow delete: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+      }
+      match /ptmBookings/{docId} {
+        allow read: if hasProfile(sid);
+        allow create: if hasProfile(sid) && (isAdmin(sid) || isViewer(sid));
+        allow update, delete: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+      }
+      match /ptmNotes/{docId} {
+        allow read: if hasProfile(sid);
+        allow write: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+      }
+    }
+  }
+}
