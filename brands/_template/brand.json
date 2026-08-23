@@ -1,0 +1,10 @@
+{
+  "id": "your_institution",
+  "displayName": "Your Institution",
+  "tagline": "Attendance, homework, timetable, marks, announcements, and PTM.",
+  "primaryColor": "#0F6A8A",
+  "logo": "logo.png",
+  "background": "background.png",
+  "appIcon": "app_icon.png",
+  "splash": "splash.png"
+}

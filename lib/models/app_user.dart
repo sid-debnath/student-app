@@ -13,7 +13,7 @@ class AppUser {
     required this.email,
     required this.displayName,
     required this.role,
-    required this.schoolId,
+    required this.institutionId,
     this.studentIds = const [],
     this.classIds = const [],
     this.fcmToken,
@@ -23,7 +23,7 @@ class AppUser {
   final String email;
   final String displayName;
   final UserRole role;
-  final String schoolId;
+  final String institutionId;
   final List<String> studentIds;
   final List<String> classIds;
   final String? fcmToken;
@@ -38,7 +38,7 @@ class AppUser {
       email: data['email'] as String? ?? '',
       displayName: data['displayName'] as String? ?? '',
       role: userRoleFromString(data['role'] as String?),
-      schoolId: data['schoolId'] as String? ?? 'default',
+      institutionId: data['institutionId'] as String? ?? 'default',
       studentIds: List<String>.from(data['studentIds'] as List? ?? const []),
       classIds: List<String>.from(data['classIds'] as List? ?? const []),
       fcmToken: data['fcmToken'] as String?,
@@ -49,7 +49,7 @@ class AppUser {
     'email': email,
     'displayName': displayName,
     'role': role.name,
-    'schoolId': schoolId,
+    'institutionId': institutionId,
     'studentIds': studentIds,
     'classIds': classIds,
     if (fcmToken != null) 'fcmToken': fcmToken,

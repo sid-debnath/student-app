@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/providers.dart';
 import '../../models/homework.dart';
-import '../../models/school_class.dart';
+import '../../models/academic_class.dart';
 import '../../widgets/async_body.dart';
 import '../../widgets/class_dropdown.dart';
 
@@ -36,7 +36,7 @@ class _HomeworkScreenState extends ConsumerState<HomeworkScreen> {
               child: const Icon(Icons.add),
             )
           : null,
-      body: StreamBuilder<List<SchoolClass>>(
+      body: StreamBuilder<List<AcademicClass>>(
         stream: roster.watchClasses(onlyIds: session.isTeacher ? session.classIds : null),
         builder: (context, classSnap) {
           final classes = classSnap.data ?? [];

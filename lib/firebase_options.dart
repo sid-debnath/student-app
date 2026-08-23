@@ -30,7 +30,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBLqSayzwOXDnz75vFajSY-e8G5yYId0Mo',
-    appId: '1:609590215661:android:79049cb1c7819741e4dde4',
+    appId: '1:609590215661:android:b814a2bf740486c1e4dde4',
     messagingSenderId: '609590215661',
     projectId: 'student-mgmt-sdd2011-bddf7',
     storageBucket: 'student-mgmt-sdd2011-bddf7.firebasestorage.app',
@@ -38,10 +38,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyD9lElMjDCZLNRK0Ap9goOyfyOp2j98yrs',
-    appId: '1:609590215661:ios:ead148408caf8794e4dde4',
+    appId: '1:609590215661:ios:13786872a723dfa5e4dde4',
     messagingSenderId: '609590215661',
     projectId: 'student-mgmt-sdd2011-bddf7',
     storageBucket: 'student-mgmt-sdd2011-bddf7.firebasestorage.app',
-    iosBundleId: 'com.school.studentApp',
+    iosBundleId: 'com.institution.studentApp',
   );
 }

@@ -4,114 +4,115 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null;
     }
-    function schoolDoc(sid) {
-      return /databases/$(database)/documents/schools/$(sid);
+    function institutionDoc(iid) {
+      return /databases/$(database)/documents/institutions/$(iid);
     }
-    function userPath(sid) {
-      return /databases/$(database)/documents/schools/$(sid)/users/$(request.auth.uid);
+    function userPath(iid) {
+      return /databases/$(database)/documents/institutions/$(iid)/users/$(request.auth.uid);
     }
-    function hasProfile(sid) {
-      return signedIn() && exists(userPath(sid));
+    function hasProfile(iid) {
+      return signedIn() && exists(userPath(iid));
     }
-    function userDoc(sid) {
-      return get(userPath(sid)).data;
+    function userDoc(iid) {
+      return get(userPath(iid)).data;
     }
-    function isAdmin(sid) {
-      return hasProfile(sid) && userDoc(sid).role == 'admin';
+    function isAdmin(iid) {
+      return hasProfile(iid) && userDoc(iid).role == 'admin';
     }
-    function isTeacher(sid) {
-      return hasProfile(sid) && userDoc(sid).role == 'teacher';
+    function isTeacher(iid) {
+      return hasProfile(iid) && userDoc(iid).role == 'teacher';
     }
-    function isViewer(sid) {
-      return hasProfile(sid) && userDoc(sid).role == 'viewer';
+    function isViewer(iid) {
+      return hasProfile(iid) && userDoc(iid).role == 'viewer';
     }
-    function teacherOfClass(sid, classId) {
-      return isTeacher(sid) && classId in userDoc(sid).classIds;
+    function teacherOfClass(iid, classId) {
+      return isTeacher(iid) && classId in userDoc(iid).classIds;
     }
-    function viewerOwnsStudent(sid, studentId) {
-      return isViewer(sid) && studentId in userDoc(sid).studentIds;
+    function viewerOwnsStudent(iid, studentId) {
+      return isViewer(iid) && studentId in userDoc(iid).studentIds;
     }
-    function bootstrapping(sid) {
-      return signedIn() && sid == 'default' && !exists(schoolDoc('default'));
+    function bootstrapping(iid) {
+      return signedIn() && iid == 'default' && !exists(institutionDoc('default'));
     }
 
-    match /schools/{sid} {
-      allow create: if bootstrapping(sid);
-      // First-time setup must be able to see that the school doc is missing.
-      allow get: if hasProfile(sid)
-        || (signedIn() && sid == 'default' && !exists(schoolDoc(sid)));
-      allow list: if hasProfile(sid);
-      allow update, delete: if isAdmin(sid);
+    match /institutions/{iid} {
+      allow create: if bootstrapping(iid);
+      // First-time setup must be able to see that the institution doc is missing.
+      allow get: if hasProfile(iid)
+        || (signedIn() && iid == 'default' && !exists(institutionDoc(iid)));
+      allow list: if hasProfile(iid);
+      allow update, delete: if isAdmin(iid);
 
       match /users/{uid} {
-        allow read: if hasProfile(sid) && (isAdmin(sid) || request.auth.uid == uid);
-        allow create: if isAdmin(sid)
+        allow get: if signedIn() && (request.auth.uid == uid || isAdmin(iid));
+        allow list: if isAdmin(iid);
+        allow create: if isAdmin(iid)
           || (
-            bootstrapping(sid)
+            bootstrapping(iid)
             && uid == request.auth.uid
             && request.resource.data.role == 'admin'
-            && request.resource.data.schoolId == sid
+            && request.resource.data.institutionId == iid
           );
-        allow update: if isAdmin(sid)
+        allow update: if isAdmin(iid)
           || (
-            hasProfile(sid)
+            hasProfile(iid)
             && request.auth.uid == uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fcmToken'])
           );
-        allow delete: if isAdmin(sid);
+        allow delete: if isAdmin(iid);
       }
       match /classes/{classId} {
-        allow read: if hasProfile(sid);
-        allow create: if isAdmin(sid) || bootstrapping(sid);
-        allow update, delete: if isAdmin(sid);
+        allow read: if hasProfile(iid);
+        allow create: if isAdmin(iid) || bootstrapping(iid);
+        allow update, delete: if isAdmin(iid);
       }
       match /students/{studentId} {
-        allow read: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid) || viewerOwnsStudent(sid, studentId));
-        allow create: if isAdmin(sid) || bootstrapping(sid);
-        allow update, delete: if isAdmin(sid);
+        allow read: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid) || viewerOwnsStudent(iid, studentId));
+        allow create: if isAdmin(iid) || bootstrapping(iid);
+        allow update, delete: if isAdmin(iid);
       }
       match /attendance/{docId} {
-        allow read: if hasProfile(sid);
-        allow write: if hasProfile(sid) && (isAdmin(sid) || teacherOfClass(sid, request.resource.data.classId));
+        allow read: if hasProfile(iid);
+        allow write: if hasProfile(iid) && (isAdmin(iid) || teacherOfClass(iid, request.resource.data.classId));
       }
       match /homework/{docId} {
-        allow read: if hasProfile(sid);
-        allow create, update: if hasProfile(sid) && (isAdmin(sid) || teacherOfClass(sid, request.resource.data.classId));
-        allow delete: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+        allow read: if hasProfile(iid);
+        allow create, update: if hasProfile(iid) && (isAdmin(iid) || teacherOfClass(iid, request.resource.data.classId));
+        allow delete: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
       }
       match /timetable/{classId}/periods/{periodId} {
-        allow read: if hasProfile(sid);
-        allow write: if hasProfile(sid) && (isAdmin(sid) || teacherOfClass(sid, classId));
+        allow read: if hasProfile(iid);
+        allow write: if hasProfile(iid) && (isAdmin(iid) || teacherOfClass(iid, classId));
       }
       match /exams/{docId} {
-        allow read: if hasProfile(sid);
-        allow write: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+        allow read: if hasProfile(iid);
+        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
       }
       match /marks/{docId} {
-        allow read: if hasProfile(sid);
-        allow write: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+        allow read: if hasProfile(iid);
+        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
       }
       match /reportCards/{docId} {
-        allow read: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid) || viewerOwnsStudent(sid, resource.data.studentId));
-        allow write: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+        allow read: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid) || viewerOwnsStudent(iid, resource.data.studentId));
+        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
       }
       match /announcements/{docId} {
-        allow read: if hasProfile(sid);
-        allow write: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+        allow read: if hasProfile(iid);
+        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
       }
       match /ptmSlots/{docId} {
-        allow read: if hasProfile(sid);
-        allow create, update: if hasProfile(sid) && (isAdmin(sid) || (isTeacher(sid) && request.resource.data.teacherId == request.auth.uid));
-        allow delete: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+        allow read: if hasProfile(iid);
+        allow create, update: if hasProfile(iid) && (isAdmin(iid) || (isTeacher(iid) && request.resource.data.teacherId == request.auth.uid));
+        allow delete: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
       }
       match /ptmBookings/{docId} {
-        allow read: if hasProfile(sid);
-        allow create: if hasProfile(sid) && (isAdmin(sid) || isViewer(sid));
-        allow update, delete: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+        allow read: if hasProfile(iid);
+        allow create: if hasProfile(iid) && (isAdmin(iid) || isViewer(iid));
+        allow update, delete: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
       }
       match /ptmNotes/{docId} {
-        allow read: if hasProfile(sid);
-        allow write: if hasProfile(sid) && (isAdmin(sid) || isTeacher(sid));
+        allow read: if hasProfile(iid);
+        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
       }
     }
   }

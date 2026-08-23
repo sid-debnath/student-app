@@ -1,15 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class SchoolPaths {
-  SchoolPaths(this.schoolId);
+class InstitutionPaths {
+  InstitutionPaths(this.institutionId);
 
-  final String schoolId;
+  final String institutionId;
 
-  DocumentReference<Map<String, dynamic>> get school =>
-      FirebaseFirestore.instance.collection('schools').doc(schoolId);
+  DocumentReference<Map<String, dynamic>> get institution =>
+      FirebaseFirestore.instance.collection('institutions').doc(institutionId);
 
   CollectionReference<Map<String, dynamic>> col(String name) =>
-      school.collection(name);
+      institution.collection(name);
 
   CollectionReference<Map<String, dynamic>> get users => col('users');
   CollectionReference<Map<String, dynamic>> get classes => col('classes');

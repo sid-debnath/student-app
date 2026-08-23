@@ -3,12 +3,15 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/branding.dart';
+import 'core/providers.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await BrandConfig.load();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   runApp(const ProviderScope(child: StudentApp()));
@@ -25,9 +28,10 @@ class StudentApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final brand = ref.watch(brandConfigProvider);
     return MaterialApp.router(
-      title: 'Student App',
-      theme: buildAppTheme(),
+      title: brand.displayName,
+      theme: buildAppTheme(brand),
       routerConfig: router,
     );
   }

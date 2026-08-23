@@ -5,10 +5,10 @@ import '../models/timetable_period.dart';
 import 'paths.dart';
 
 class TimetableRepository {
-  TimetableRepository(this.schoolId) : _paths = SchoolPaths(schoolId);
+  TimetableRepository(this.institutionId) : _paths = InstitutionPaths(institutionId);
 
-  final String schoolId;
-  final SchoolPaths _paths;
+  final String institutionId;
+  final InstitutionPaths _paths;
   final _uuid = const Uuid();
 
   Stream<List<TimetablePeriod>> watch(String classId) {

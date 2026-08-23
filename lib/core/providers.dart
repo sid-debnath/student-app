@@ -10,6 +10,8 @@ import '../data/ptm_repository.dart';
 import '../data/roster_repository.dart';
 import '../data/timetable_repository.dart';
 import '../models/app_user.dart';
+import '../models/institution.dart';
+import 'branding.dart';
 
 extension AsyncValueX<T> on AsyncValue<T> {
   T? get valueOrNull => value;
@@ -38,41 +40,53 @@ class SelectedStudentId extends Notifier<String?> {
   void select(String? id) => state = id;
 }
 
-final schoolIdProvider = Provider<String?>((ref) {
-  return ref.watch(sessionProvider).valueOrNull?.schoolId;
+final institutionIdProvider = Provider<String?>((ref) {
+  return ref.watch(sessionProvider).valueOrNull?.institutionId;
+});
+
+final institutionProvider = StreamProvider<Institution?>((ref) {
+  if (ref.watch(sessionProvider).valueOrNull == null) {
+    return Stream.value(null);
+  }
+  return ref.watch(authRepositoryProvider).watchInstitution();
+});
+
+final brandConfigProvider = Provider<BrandConfig>((ref) {
+  final remote = ref.watch(institutionProvider).valueOrNull;
+  return BrandConfig.current.mergeInstitution(remote);
 });
 
 final rosterRepositoryProvider = Provider<RosterRepository?>((ref) {
-  final schoolId = ref.watch(schoolIdProvider);
-  return schoolId == null ? null : RosterRepository(schoolId);
+  final institutionId = ref.watch(institutionIdProvider);
+  return institutionId == null ? null : RosterRepository(institutionId);
 });
 
 final attendanceRepositoryProvider = Provider<AttendanceRepository?>((ref) {
-  final schoolId = ref.watch(schoolIdProvider);
-  return schoolId == null ? null : AttendanceRepository(schoolId);
+  final institutionId = ref.watch(institutionIdProvider);
+  return institutionId == null ? null : AttendanceRepository(institutionId);
 });
 
 final homeworkRepositoryProvider = Provider<HomeworkRepository?>((ref) {
-  final schoolId = ref.watch(schoolIdProvider);
-  return schoolId == null ? null : HomeworkRepository(schoolId);
+  final institutionId = ref.watch(institutionIdProvider);
+  return institutionId == null ? null : HomeworkRepository(institutionId);
 });
 
 final timetableRepositoryProvider = Provider<TimetableRepository?>((ref) {
-  final schoolId = ref.watch(schoolIdProvider);
-  return schoolId == null ? null : TimetableRepository(schoolId);
+  final institutionId = ref.watch(institutionIdProvider);
+  return institutionId == null ? null : TimetableRepository(institutionId);
 });
 
 final marksRepositoryProvider = Provider<MarksRepository?>((ref) {
-  final schoolId = ref.watch(schoolIdProvider);
-  return schoolId == null ? null : MarksRepository(schoolId);
+  final institutionId = ref.watch(institutionIdProvider);
+  return institutionId == null ? null : MarksRepository(institutionId);
 });
 
 final announcementRepositoryProvider = Provider<AnnouncementRepository?>((ref) {
-  final schoolId = ref.watch(schoolIdProvider);
-  return schoolId == null ? null : AnnouncementRepository(schoolId);
+  final institutionId = ref.watch(institutionIdProvider);
+  return institutionId == null ? null : AnnouncementRepository(institutionId);
 });
 
 final ptmRepositoryProvider = Provider<PtmRepository?>((ref) {
-  final schoolId = ref.watch(schoolIdProvider);
-  return schoolId == null ? null : PtmRepository(schoolId);
+  final institutionId = ref.watch(institutionIdProvider);
+  return institutionId == null ? null : PtmRepository(institutionId);
 });

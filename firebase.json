@@ -1,1 +1,29 @@
-{"firestore":{"rules":"firebase/firestore.rules","indexes":"firebase/firestore.indexes.json"},"storage":{"rules":"firebase/storage.rules"},"functions":[{"source":"functions","codebase":"default","ignore":["node_modules",".git"]}],"flutter":{"platforms":{"android":{"default":{"projectId":"student-mgmt-sdd2011-bddf7","appId":"1:609590215661:android:79049cb1c7819741e4dde4","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"student-mgmt-sdd2011-bddf7","configurations":{"android":"1:609590215661:android:79049cb1c7819741e4dde4","web":"1:609590215661:web:35351794d28512c7e4dde4"}}}}}}
+{"firestore":{"rules":"firebase/firestore.rules","indexes":"firebase/firestore.indexes.json"},"storage":{"rules":"firebase/storage.rules"},"functions":[{"source":"functions","codebase":"default","ignore":["node_modules",".git"]}],"flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "student-mgmt-sdd2011-bddf7",
+          "appId": "1:609590215661:android:b814a2bf740486c1e4dde4",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "student-mgmt-sdd2011-bddf7",
+          "appId": "1:609590215661:ios:13786872a723dfa5e4dde4",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "student-mgmt-sdd2011-bddf7",
+          "configurations": {
+            "android": "1:609590215661:android:b814a2bf740486c1e4dde4",
+            "ios": "1:609590215661:ios:13786872a723dfa5e4dde4",
+            "web": "1:609590215661:web:35351794d28512c7e4dde4"
+          }
+        }
+      }
+    }
+  }}

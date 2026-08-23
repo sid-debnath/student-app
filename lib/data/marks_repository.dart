@@ -7,10 +7,10 @@ import '../models/report_card.dart';
 import 'paths.dart';
 
 class MarksRepository {
-  MarksRepository(this.schoolId) : _paths = SchoolPaths(schoolId);
+  MarksRepository(this.institutionId) : _paths = InstitutionPaths(institutionId);
 
-  final String schoolId;
-  final SchoolPaths _paths;
+  final String institutionId;
+  final InstitutionPaths _paths;
   final _uuid = const Uuid();
 
   Stream<List<Exam>> watchExams({String? classId}) {

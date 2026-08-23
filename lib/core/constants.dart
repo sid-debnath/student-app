@@ -1,1 +1,1 @@
-const kDefaultSchoolId = 'default';
+const kDefaultInstitutionId = 'default';

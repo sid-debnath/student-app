@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
-import '../../models/school_class.dart';
+import '../../models/academic_class.dart';
 import '../../models/student.dart';
 import '../../widgets/async_body.dart';
 import '../../widgets/class_dropdown.dart';
@@ -39,7 +39,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
         onPressed: _classId == null ? null : _editStudent,
         child: const Icon(Icons.person_add_alt_1),
       ),
-      body: StreamBuilder<List<SchoolClass>>(
+      body: StreamBuilder<List<AcademicClass>>(
         stream: roster.watchClasses(),
         builder: (context, snapshot) {
           final classes = snapshot.data ?? [];
@@ -115,7 +115,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
     if (saved != true) return;
     await runGuarded(context, () {
       return ref.read(rosterRepositoryProvider)!.upsertClass(
-        SchoolClass(
+        AcademicClass(
           id: '',
           name: name.text.trim(),
           section: section.text.trim(),

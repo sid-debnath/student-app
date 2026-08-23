@@ -37,7 +37,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         .where((item) => item.isNotEmpty)
         .toList();
     try {
-      await ref.read(authRepositoryProvider).createSchoolUser(
+      await ref.read(authRepositoryProvider).createInstitutionUser(
         email: _email.text.trim(),
         password: _password.text,
         displayName: _name.text.trim(),

@@ -41,7 +41,7 @@ class AnnouncementsScreen extends ConsumerWidget {
                   child: ListTile(
                     title: Text(item.title),
                     subtitle: Text(
-                      '${item.isSchoolWide ? 'School' : 'Class'}'
+                      '${item.isInstitutionWide ? 'Institution' : 'Class'}'
                       '${item.createdAt == null ? '' : ' · ${DateFormat.yMMMd().format(item.createdAt!)}'}\n'
                       '${item.body}',
                     ),

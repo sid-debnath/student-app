@@ -2,21 +2,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/app_user.dart';
-import '../models/school_class.dart';
+import '../models/academic_class.dart';
 import '../models/student.dart';
 import 'paths.dart';
 
 class RosterRepository {
-  RosterRepository(this.schoolId) : _paths = SchoolPaths(schoolId);
+  RosterRepository(this.institutionId) : _paths = InstitutionPaths(institutionId);
 
-  final String schoolId;
-  final SchoolPaths _paths;
+  final String institutionId;
+  final InstitutionPaths _paths;
   final _uuid = const Uuid();
 
-  Stream<List<SchoolClass>> watchClasses({List<String>? onlyIds}) {
+  Stream<List<AcademicClass>> watchClasses({List<String>? onlyIds}) {
     return _paths.classes.orderBy('name').snapshots().map((snap) {
       final items = snap.docs
-          .map((doc) => SchoolClass.fromMap(doc.id, doc.data()))
+          .map((doc) => AcademicClass.fromMap(doc.id, doc.data()))
           .toList();
       if (onlyIds == null) return items;
       return items.where((item) => onlyIds.contains(item.id)).toList();
@@ -48,9 +48,9 @@ class RosterRepository {
     );
   }
 
-  Future<void> upsertClass(SchoolClass schoolClass) async {
-    final id = schoolClass.id.isEmpty ? _uuid.v4() : schoolClass.id;
-    await _paths.classes.doc(id).set(schoolClass.toMap(), SetOptions(merge: true));
+  Future<void> upsertClass(AcademicClass academicClass) async {
+    final id = academicClass.id.isEmpty ? _uuid.v4() : academicClass.id;
+    await _paths.classes.doc(id).set(academicClass.toMap(), SetOptions(merge: true));
   }
 
   Future<void> deleteClass(String id) => _paths.classes.doc(id).delete();

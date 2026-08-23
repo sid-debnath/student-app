@@ -4,10 +4,10 @@ import '../models/announcement.dart';
 import 'paths.dart';
 
 class AnnouncementRepository {
-  AnnouncementRepository(this.schoolId) : _paths = SchoolPaths(schoolId);
+  AnnouncementRepository(this.institutionId) : _paths = InstitutionPaths(institutionId);
 
-  final String schoolId;
-  final SchoolPaths _paths;
+  final String institutionId;
+  final InstitutionPaths _paths;
   final _uuid = const Uuid();
 
   Stream<List<Announcement>> watch() {

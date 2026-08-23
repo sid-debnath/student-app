@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/providers.dart';
 import '../../models/attendance.dart';
-import '../../models/school_class.dart';
+import '../../models/academic_class.dart';
 import '../../models/student.dart';
 import '../../widgets/async_body.dart';
 import '../../widgets/class_dropdown.dart';
@@ -38,7 +38,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Attendance')),
-      body: StreamBuilder<List<SchoolClass>>(
+      body: StreamBuilder<List<AcademicClass>>(
         stream: roster.watchClasses(onlyIds: session.isTeacher ? session.classIds : null),
         builder: (context, classSnap) {
           final classes = classSnap.data ?? [];

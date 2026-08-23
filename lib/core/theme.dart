@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-ThemeData buildAppTheme() {
-  const seed = Color(0xFF1565C0);
+import 'branding.dart';
+
+ThemeData buildAppTheme([BrandConfig? brand]) {
+  final seed = (brand ?? BrandConfig.current).primaryColor;
   final scheme = ColorScheme.fromSeed(seedColor: seed);
   return ThemeData(
     colorScheme: scheme,

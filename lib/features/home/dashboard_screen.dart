@@ -5,15 +5,25 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../models/app_user.dart';
 import '../../widgets/async_body.dart';
+import '../../widgets/brand_logo.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final brand = ref.watch(brandConfigProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
+        title: Row(
+          children: [
+            BrandLogo(height: 28, brand: brand),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(brand.displayName, overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Sign out',

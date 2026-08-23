@@ -1,5 +1,5 @@
-class SchoolClass {
-  const SchoolClass({
+class AcademicClass {
+  const AcademicClass({
     required this.id,
     required this.name,
     required this.section,
@@ -15,8 +15,8 @@ class SchoolClass {
 
   String get label => '$name-$section';
 
-  factory SchoolClass.fromMap(String id, Map<String, dynamic> data) {
-    return SchoolClass(
+  factory AcademicClass.fromMap(String id, Map<String, dynamic> data) {
+    return AcademicClass(
       id: id,
       name: data['name'] as String? ?? '',
       section: data['section'] as String? ?? '',

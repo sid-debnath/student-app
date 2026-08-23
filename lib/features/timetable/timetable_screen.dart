@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
-import '../../models/school_class.dart';
+import '../../models/academic_class.dart';
 import '../../models/timetable_period.dart';
 import '../../widgets/async_body.dart';
 import '../../widgets/class_dropdown.dart';
@@ -35,7 +35,7 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
               child: const Icon(Icons.add),
             )
           : null,
-      body: StreamBuilder<List<SchoolClass>>(
+      body: StreamBuilder<List<AcademicClass>>(
         stream: roster.watchClasses(onlyIds: session.isTeacher ? session.classIds : null),
         builder: (context, classSnap) {
           final classes = classSnap.data ?? [];

@@ -5,10 +5,10 @@ import '../models/homework.dart';
 import 'paths.dart';
 
 class HomeworkRepository {
-  HomeworkRepository(this.schoolId) : _paths = SchoolPaths(schoolId);
+  HomeworkRepository(this.institutionId) : _paths = InstitutionPaths(institutionId);
 
-  final String schoolId;
-  final SchoolPaths _paths;
+  final String institutionId;
+  final InstitutionPaths _paths;
   final _uuid = const Uuid();
 
   Stream<List<Homework>> watch({String? classId}) {

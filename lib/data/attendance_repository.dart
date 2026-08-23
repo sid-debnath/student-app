@@ -4,10 +4,10 @@ import '../models/attendance.dart';
 import 'paths.dart';
 
 class AttendanceRepository {
-  AttendanceRepository(this.schoolId) : _paths = SchoolPaths(schoolId);
+  AttendanceRepository(this.institutionId) : _paths = InstitutionPaths(institutionId);
 
-  final String schoolId;
-  final SchoolPaths _paths;
+  final String institutionId;
+  final InstitutionPaths _paths;
 
   String docId(String classId, String date) => '${classId}_$date';
 

@@ -1,5 +1,5 @@
 // Optional. Cloud Functions require the Blaze plan. The Flutter app now
-// bootstraps the school and creates users on the client so Spark works.
+// bootstraps the institution and creates users on the client so Spark works.
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const {initializeApp} = require("firebase-admin/app");
@@ -16,51 +16,58 @@ function requireAdmin(request) {
   }
 }
 
-exports.bootstrapSchool = onCall(async (request) => {
+exports.bootstrapInstitution = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Sign in first.");
   }
-  const schoolName = request.data.schoolName || "My School";
+  const institutionName = request.data.institutionName || "My Institution";
   const displayName = request.data.displayName || request.auth.token.email || "Admin";
-  const existing = await db.collection("schools").limit(1).get();
+  const existing = await db.collection("institutions").limit(1).get();
   if (!existing.empty) {
-    throw new HttpsError("already-exists", "A school is already bootstrapped.");
+    throw new HttpsError("already-exists", "An institution is already bootstrapped.");
   }
-  const schoolId = "default";
+  const institutionId = "default";
   const uid = request.auth.uid;
-  await db.collection("schools").doc(schoolId).set({
-    name: schoolName,
+  await db.collection("institutions").doc(institutionId).set({
+    name: institutionName,
     createdAt: FieldValue.serverTimestamp(),
+    branding: {
+      displayName: institutionName,
+      tagline: "",
+      primaryColor: "#0F6A8A",
+      logoUrl: "",
+      backgroundUrl: "",
+    },
   });
-  await getAuth().setCustomUserClaims(uid, {role: "admin", schoolId});
-  const classRef = db.collection("schools").doc(schoolId).collection("classes").doc();
+  await getAuth().setCustomUserClaims(uid, {role: "admin", institutionId});
+  const classRef = db.collection("institutions").doc(institutionId).collection("classes").doc();
   await classRef.set({
     name: "10",
     section: "A",
     year: new Date().getFullYear(),
     teacherIds: [],
   });
-  const studentRef = db.collection("schools").doc(schoolId).collection("students").doc();
+  const studentRef = db.collection("institutions").doc(institutionId).collection("students").doc();
   await studentRef.set({
     name: "Demo Student",
     classId: classRef.id,
     roll: "1",
     viewerUids: [],
   });
-  await db.collection("schools").doc(schoolId).collection("users").doc(uid).set({
+  await db.collection("institutions").doc(institutionId).collection("users").doc(uid).set({
     email: request.auth.token.email || "",
     displayName,
     role: "admin",
-    schoolId,
+    institutionId,
     classIds: [],
     studentIds: [],
   });
-  return {schoolId, classId: classRef.id, studentId: studentRef.id};
+  return {institutionId, classId: classRef.id, studentId: studentRef.id};
 });
 
-exports.createSchoolUser = onCall(async (request) => {
+exports.createInstitutionUser = onCall(async (request) => {
   requireAdmin(request);
-  const schoolId = request.auth.token.schoolId;
+  const institutionId = request.auth.token.institutionId;
   const {email, password, displayName, role, classIds = [], studentIds = []} = request.data;
   if (!email || !password || !role) {
     throw new HttpsError("invalid-argument", "email, password, and role are required.");
@@ -70,12 +77,12 @@ exports.createSchoolUser = onCall(async (request) => {
     password,
     displayName: displayName || email,
   });
-  await getAuth().setCustomUserClaims(user.uid, {role, schoolId});
-  await db.collection("schools").doc(schoolId).collection("users").doc(user.uid).set({
+  await getAuth().setCustomUserClaims(user.uid, {role, institutionId});
+  await db.collection("institutions").doc(institutionId).collection("users").doc(user.uid).set({
     email,
     displayName: displayName || email,
     role,
-    schoolId,
+    institutionId,
     classIds,
     studentIds,
   });
@@ -84,18 +91,18 @@ exports.createSchoolUser = onCall(async (request) => {
 
 exports.setUserClaims = onCall(async (request) => {
   requireAdmin(request);
-  const {uid, role, schoolId} = request.data;
+  const {uid, role, institutionId} = request.data;
   await getAuth().setCustomUserClaims(uid, {
     role,
-    schoolId: schoolId || request.auth.token.schoolId,
+    institutionId: institutionId || request.auth.token.institutionId,
   });
   return {ok: true};
 });
 
-async function notifyTopic(schoolId, classId, title, body) {
+async function notifyTopic(institutionId, classId, title, body) {
   const topic = classId
-    ? `school_${schoolId}_class_${classId}`
-    : `school_${schoolId}_all`;
+    ? `institution_${institutionId}_class_${classId}`
+    : `institution_${institutionId}_all`;
   await getMessaging().send({
     topic,
     notification: {title, body},
@@ -105,11 +112,11 @@ async function notifyTopic(schoolId, classId, title, body) {
 }
 
 exports.onAnnouncementCreated = onDocumentCreated(
-  "schools/{schoolId}/announcements/{id}",
+  "institutions/{institutionId}/announcements/{id}",
   async (event) => {
     const data = event.data?.data() || {};
     await notifyTopic(
-      event.params.schoolId,
+      event.params.institutionId,
       data.audience === "all" ? null : (data.classIds || [])[0],
       data.title || "Announcement",
       data.body || "",
@@ -118,11 +125,11 @@ exports.onAnnouncementCreated = onDocumentCreated(
 );
 
 exports.onHomeworkCreated = onDocumentCreated(
-  "schools/{schoolId}/homework/{id}",
+  "institutions/{institutionId}/homework/{id}",
   async (event) => {
     const data = event.data?.data() || {};
     await notifyTopic(
-      event.params.schoolId,
+      event.params.institutionId,
       data.classId,
       data.title || "New homework",
       data.body || "",
@@ -131,11 +138,11 @@ exports.onHomeworkCreated = onDocumentCreated(
 );
 
 exports.onReportCardPublished = onDocumentCreated(
-  "schools/{schoolId}/reportCards/{id}",
+  "institutions/{institutionId}/reportCards/{id}",
   async (event) => {
     const data = event.data?.data() || {};
     await notifyTopic(
-      event.params.schoolId,
+      event.params.institutionId,
       data.classId,
       "Report card published",
       data.examName || "A new report card is available.",
@@ -144,11 +151,11 @@ exports.onReportCardPublished = onDocumentCreated(
 );
 
 exports.onPtmBooked = onDocumentCreated(
-  "schools/{schoolId}/ptmBookings/{id}",
+  "institutions/{institutionId}/ptmBookings/{id}",
   async (event) => {
     const data = event.data?.data() || {};
     await notifyTopic(
-      event.params.schoolId,
+      event.params.institutionId,
       null,
       "PTM booking",
       "A parent-teacher meeting slot was booked.",

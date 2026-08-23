@@ -19,7 +19,7 @@ class Announcement {
   final String? createdBy;
   final DateTime? createdAt;
 
-  bool get isSchoolWide => audience == 'all';
+  bool get isInstitutionWide => audience == 'all';
 
   factory Announcement.fromMap(String id, Map<String, dynamic> data) {
     final created = data['createdAt'];

@@ -4,14 +4,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
 
+import '../core/app_config.dart';
 import '../models/ptm.dart';
 import 'paths.dart';
 
 class PtmRepository {
-  PtmRepository(this.schoolId) : _paths = SchoolPaths(schoolId);
+  PtmRepository(this.institutionId) : _paths = InstitutionPaths(institutionId);
 
-  final String schoolId;
-  final SchoolPaths _paths;
+  final String institutionId;
+  final InstitutionPaths _paths;
   final _uuid = const Uuid();
 
   Stream<List<PtmSlot>> watchSlots({String? teacherId}) {
@@ -85,12 +86,16 @@ class PtmRepository {
   }) async {
     final id = note.id.isEmpty ? _uuid.v4() : note.id;
     var urls = [...note.attachmentUrls];
-    if (fileBytes != null && fileName != null) {
-      final ref = FirebaseStorage.instance.ref(
-        'schools/$schoolId/ptm/$id/$fileName',
-      );
-      await ref.putData(fileBytes);
-      urls = [...urls, await ref.getDownloadURL()];
+    if (AppConfig.useStorage && fileBytes != null && fileName != null) {
+      try {
+        final ref = FirebaseStorage.instance.ref(
+          'institutions/$institutionId/ptm/$id/$fileName',
+        );
+        await ref.putData(fileBytes);
+        urls = [...urls, await ref.getDownloadURL()];
+      } catch (_) {
+        // Spark / no bucket: keep the text note without the file.
+      }
     }
     await _paths.ptmNotes.doc(id).set(
       note.copyWith(id: id, attachmentUrls: urls).toMap(),

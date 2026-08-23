@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../models/school_class.dart';
+import '../../models/academic_class.dart';
 
 class ClassDropdown extends StatelessWidget {
   const ClassDropdown({
@@ -10,7 +10,7 @@ class ClassDropdown extends StatelessWidget {
     required this.onChanged,
   });
 
-  final List<SchoolClass> classes;
+  final List<AcademicClass> classes;
   final String? value;
   final ValueChanged<String?> onChanged;
 
