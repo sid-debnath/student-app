@@ -39,7 +39,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Attendance')),
       body: StreamBuilder<List<AcademicClass>>(
-        stream: roster.watchClasses(),
+        stream: roster.watchVisibleClasses(session),
         builder: (context, classSnap) {
           final classes = classSnap.data ?? [];
           final classId = classes.any((item) => item.id == _classId)
@@ -48,9 +48,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              ClassDropdown(
+              ClassPicker(
                 classes: classes,
                 value: classId,
+                emptyLabel: session.isViewer
+                    ? 'No class is linked to this student account.'
+                    : 'No classes yet.',
                 onChanged: (value) => setState(() => _classId = value),
               ),
               ListTile(

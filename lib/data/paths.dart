@@ -16,6 +16,8 @@ class InstitutionPaths {
   CollectionReference<Map<String, dynamic>> get students => col('students');
   CollectionReference<Map<String, dynamic>> get attendance => col('attendance');
   CollectionReference<Map<String, dynamic>> get homework => col('homework');
+  CollectionReference<Map<String, dynamic>> homeworkFiles(String homeworkId) =>
+      homework.doc(homeworkId).collection('files');
   CollectionReference<Map<String, dynamic>> get exams => col('exams');
   CollectionReference<Map<String, dynamic>> get marks => col('marks');
   CollectionReference<Map<String, dynamic>> get reportCards => col('reportCards');

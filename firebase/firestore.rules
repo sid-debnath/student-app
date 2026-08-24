@@ -75,6 +75,10 @@ service cloud.firestore {
       match /homework/{docId} {
         allow read: if hasProfile(iid);
         allow create, update, delete: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        match /files/{fileId} {
+          allow read: if hasProfile(iid);
+          allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        }
       }
       match /timetable/{classId}/periods/{periodId} {
         allow read: if hasProfile(iid);
@@ -94,7 +98,7 @@ service cloud.firestore {
       }
       match /announcements/{docId} {
         allow read: if hasProfile(iid);
-        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        allow write: if isAdmin(iid);
       }
       match /ptmSlots/{docId} {
         allow read: if hasProfile(iid);

@@ -29,6 +29,36 @@ class RosterRepository {
     });
   }
 
+  /// Students/parents only see classes they are enrolled in.
+  Stream<List<AcademicClass>> watchVisibleClasses(AppUser user) {
+    if (!user.isViewer) return watchClasses();
+    return Stream.multi((controller) {
+      var classes = <AcademicClass>[];
+      var allowedIds = <String>{};
+      void emit() {
+        controller.add(
+          [
+            for (final academicClass in classes)
+              if (allowedIds.contains(academicClass.id)) academicClass,
+          ],
+        );
+      }
+
+      final classSub = watchClasses().listen((items) {
+        classes = items;
+        emit();
+      }, onError: controller.addError);
+      final studentSub = watchStudentsByIds(user.studentIds).listen((students) {
+        allowedIds = {for (final student in students) student.classId};
+        emit();
+      }, onError: controller.addError);
+      controller.onCancel = () {
+        unawaited(classSub.cancel());
+        unawaited(studentSub.cancel());
+      };
+    });
+  }
+
   Future<String?> selectedOrFirstClassId(String? selectedId) async {
     final classes = await watchClasses().first;
     if (classes.any((item) => item.id == selectedId)) return selectedId;
@@ -93,14 +123,20 @@ class RosterRepository {
 
   Future<void> upsertClass(AcademicClass academicClass) async {
     final id = academicClass.id.isEmpty ? _uuid.v4() : academicClass.id;
-    await _paths.classes.doc(id).set(academicClass.toMap(), SetOptions(merge: true));
+    final payload = academicClass.toMap();
+    if (academicClass.id.isEmpty) {
+      await _paths.classes.doc(id).set(payload);
+    } else {
+      await _paths.classes.doc(id).set(payload, SetOptions(merge: true));
+    }
   }
 
   Future<void> deleteClass(String id) => _paths.classes.doc(id).delete();
 
-  Future<void> upsertStudent(Student student) async {
+  Future<String> upsertStudent(Student student) async {
     final id = student.id.isEmpty ? _uuid.v4() : student.id;
     await _paths.students.doc(id).set(student.toMap(), SetOptions(merge: true));
+    return id;
   }
 
   Future<void> deleteStudent(String id) => _paths.students.doc(id).delete();
@@ -124,8 +160,11 @@ class RosterRepository {
     await _paths.students.doc(studentId).set({
       'viewerUids': FieldValue.arrayUnion([viewerId]),
     }, SetOptions(merge: true));
+    final studentSnap = await _paths.students.doc(studentId).get();
+    final classId = studentSnap.data()?['classId'] as String?;
     await _paths.users.doc(viewerId).set({
       'studentIds': FieldValue.arrayUnion([studentId]),
+      if (classId != null) 'classIds': FieldValue.arrayUnion([classId]),
     }, SetOptions(merge: true));
   }
 }

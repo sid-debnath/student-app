@@ -93,7 +93,7 @@ class AuthRepository {
     await batch.commit();
   }
 
-  Future<void> createInstitutionUser({
+  Future<String?> createInstitutionUser({
     required String email,
     required String password,
     required String displayName,
@@ -111,10 +111,10 @@ class AuthRepository {
           'classIds': classIds,
           'studentIds': studentIds,
         });
-        return;
+        return null;
       } catch (_) {}
     }
-    await _createInstitutionUserOnClient(
+    return _createInstitutionUserOnClient(
       email: email,
       password: password,
       displayName: displayName,
@@ -124,7 +124,7 @@ class AuthRepository {
     );
   }
 
-  Future<void> _createInstitutionUserOnClient({
+  Future<String> _createInstitutionUserOnClient({
     required String email,
     required String password,
     required String displayName,
@@ -157,6 +157,7 @@ class AuthRepository {
         'classIds': classIds,
         'studentIds': studentIds,
       });
+      return uid;
     } finally {
       await secondaryAuth.signOut();
     }

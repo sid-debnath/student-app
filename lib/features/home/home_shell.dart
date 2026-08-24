@@ -61,6 +61,12 @@ List<_Tab> _tabsFor(UserRole role) {
         _Tab('/more', 'More', Icons.grid_view_outlined),
       ];
     case UserRole.teacher:
+      return const [
+        _Tab('/', 'Home', Icons.home_outlined),
+        _Tab('/homework', 'Homework', Icons.menu_book_outlined),
+        _Tab('/announcements', 'News', Icons.campaign_outlined),
+        _Tab('/more', 'More', Icons.grid_view_outlined),
+      ];
     case UserRole.viewer:
       return const [
         _Tab('/', 'Home', Icons.home_outlined),
