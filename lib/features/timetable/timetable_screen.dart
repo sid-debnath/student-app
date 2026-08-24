@@ -31,21 +31,26 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
       appBar: AppBar(title: const Text('Timetable')),
       floatingActionButton: canEdit
           ? FloatingActionButton(
-              onPressed: () => _add(_classId),
+              onPressed: () => _add(),
               child: const Icon(Icons.add),
             )
           : null,
       body: StreamBuilder<List<AcademicClass>>(
-        stream: roster.watchClasses(onlyIds: session.isTeacher ? session.classIds : null),
+        stream: roster.watchVisibleClasses(session),
         builder: (context, classSnap) {
           final classes = classSnap.data ?? [];
-          final classId = _classId ?? (classes.isEmpty ? null : classes.first.id);
+          final classId = classes.any((item) => item.id == _classId)
+              ? _classId
+              : (classes.isEmpty ? null : classes.first.id);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              ClassDropdown(
+              ClassPicker(
                 classes: classes,
                 value: classId,
+                emptyLabel: session.isViewer
+                    ? 'No class is linked to this student account.'
+                    : 'No classes yet.',
                 onChanged: (value) => setState(() => _classId = value),
               ),
               const SizedBox(height: 12),
@@ -85,8 +90,9 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
     );
   }
 
-  Future<void> _add(String? classId) async {
-    if (classId == null) return;
+  Future<void> _add() async {
+    final classId = await ref.read(rosterRepositoryProvider)?.selectedOrFirstClassId(_classId);
+    if (!mounted || classId == null) return;
     final subject = TextEditingController();
     final start = TextEditingController(text: '09:00');
     final end = TextEditingController(text: '09:45');
@@ -110,7 +116,7 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
         ],
       ),
     );
-    if (saved != true) return;
+    if (!mounted || saved != true) return;
     final session = ref.read(sessionProvider).valueOrNull;
     await runGuarded(context, () {
       return ref.read(timetableRepositoryProvider)!.upsert(

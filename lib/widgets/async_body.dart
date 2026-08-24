@@ -38,7 +38,17 @@ class AsyncBody<T> extends StatelessWidget {
 }
 
 void showError(BuildContext context, Object error) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(formatAppError(error))),
+  );
+}
+
+String formatAppError(Object error) {
+  final text = '$error';
+  if (text.contains('permission-denied')) {
+    return 'You do not have permission to do that. Sign in as an admin to add classes.';
+  }
+  return text;
 }
 
 Future<void> runGuarded(

@@ -76,8 +76,6 @@ class AuthRepository {
       if (error.code != 'permission-denied') rethrow;
     }
 
-    final classRef = institutionRef.collection('classes').doc();
-    final studentRef = institutionRef.collection('students').doc();
     final batch = _db.batch();
     batch.set(institutionRef, {
       'name': institutionName,
@@ -92,22 +90,10 @@ class AuthRepository {
       'classIds': <String>[],
       'studentIds': <String>[],
     });
-    batch.set(classRef, {
-      'name': '10',
-      'section': 'A',
-      'year': DateTime.now().year,
-      'teacherIds': <String>[],
-    });
-    batch.set(studentRef, {
-      'name': 'Demo Student',
-      'classId': classRef.id,
-      'roll': '1',
-      'viewerUids': <String>[],
-    });
     await batch.commit();
   }
 
-  Future<void> createInstitutionUser({
+  Future<String?> createInstitutionUser({
     required String email,
     required String password,
     required String displayName,
@@ -125,10 +111,10 @@ class AuthRepository {
           'classIds': classIds,
           'studentIds': studentIds,
         });
-        return;
+        return null;
       } catch (_) {}
     }
-    await _createInstitutionUserOnClient(
+    return _createInstitutionUserOnClient(
       email: email,
       password: password,
       displayName: displayName,
@@ -138,7 +124,7 @@ class AuthRepository {
     );
   }
 
-  Future<void> _createInstitutionUserOnClient({
+  Future<String> _createInstitutionUserOnClient({
     required String email,
     required String password,
     required String displayName,
@@ -171,6 +157,7 @@ class AuthRepository {
         'classIds': classIds,
         'studentIds': studentIds,
       });
+      return uid;
     } finally {
       await secondaryAuth.signOut();
     }

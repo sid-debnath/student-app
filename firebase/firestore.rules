@@ -25,9 +25,6 @@ service cloud.firestore {
     function isViewer(iid) {
       return hasProfile(iid) && userDoc(iid).role == 'viewer';
     }
-    function teacherOfClass(iid, classId) {
-      return isTeacher(iid) && classId in userDoc(iid).classIds;
-    }
     function viewerOwnsStudent(iid, studentId) {
       return isViewer(iid) && studentId in userDoc(iid).studentIds;
     }
@@ -73,16 +70,19 @@ service cloud.firestore {
       }
       match /attendance/{docId} {
         allow read: if hasProfile(iid);
-        allow write: if hasProfile(iid) && (isAdmin(iid) || teacherOfClass(iid, request.resource.data.classId));
+        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
       }
       match /homework/{docId} {
         allow read: if hasProfile(iid);
-        allow create, update: if hasProfile(iid) && (isAdmin(iid) || teacherOfClass(iid, request.resource.data.classId));
-        allow delete: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        allow create, update, delete: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        match /files/{fileId} {
+          allow read: if hasProfile(iid);
+          allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        }
       }
       match /timetable/{classId}/periods/{periodId} {
         allow read: if hasProfile(iid);
-        allow write: if hasProfile(iid) && (isAdmin(iid) || teacherOfClass(iid, classId));
+        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
       }
       match /exams/{docId} {
         allow read: if hasProfile(iid);
@@ -98,7 +98,7 @@ service cloud.firestore {
       }
       match /announcements/{docId} {
         allow read: if hasProfile(iid);
-        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        allow write: if isAdmin(iid);
       }
       match /ptmSlots/{docId} {
         allow read: if hasProfile(iid);

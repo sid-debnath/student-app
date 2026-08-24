@@ -91,7 +91,6 @@ List<_Action> _actions(UserRole role) {
       ];
     case UserRole.teacher:
       return const [
-        _Action('Take attendance', '/attendance', Icons.fact_check_outlined),
         _Action('Homework', '/homework', Icons.menu_book_outlined),
         _Action('Marks', '/marks', Icons.grade_outlined),
         _Action('Timetable', '/timetable', Icons.calendar_view_week_outlined),

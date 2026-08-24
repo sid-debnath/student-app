@@ -13,7 +13,7 @@ class AcademicClass {
   final int year;
   final List<String> teacherIds;
 
-  String get label => '$name-$section';
+  String get label => section.isEmpty ? name : '$name-$section';
 
   factory AcademicClass.fromMap(String id, Map<String, dynamic> data) {
     return AcademicClass(

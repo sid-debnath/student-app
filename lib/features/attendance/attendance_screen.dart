@@ -39,16 +39,21 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Attendance')),
       body: StreamBuilder<List<AcademicClass>>(
-        stream: roster.watchClasses(onlyIds: session.isTeacher ? session.classIds : null),
+        stream: roster.watchVisibleClasses(session),
         builder: (context, classSnap) {
           final classes = classSnap.data ?? [];
-          final classId = _classId ?? (classes.isEmpty ? null : classes.first.id);
+          final classId = classes.any((item) => item.id == _classId)
+              ? _classId
+              : (classes.isEmpty ? null : classes.first.id);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              ClassDropdown(
+              ClassPicker(
                 classes: classes,
                 value: classId,
+                emptyLabel: session.isViewer
+                    ? 'No class is linked to this student account.'
+                    : 'No classes yet.',
                 onChanged: (value) => setState(() => _classId = value),
               ),
               ListTile(
@@ -69,9 +74,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               ),
               if (classId != null)
                 StreamBuilder<List<Student>>(
-                  stream: roster.watchStudents(classId: classId),
+                  stream: session.isViewer
+                      ? roster.watchStudentsByIds(session.studentIds)
+                      : roster.watchStudents(classId: classId),
                   builder: (context, studentSnap) {
-                    final students = studentSnap.data ?? [];
+                    final students = (studentSnap.data ?? [])
+                        .where((student) => student.classId == classId)
+                        .toList();
                     return StreamBuilder<AttendanceRecord?>(
                       stream: attendance.watchDay(classId, _date),
                       builder: (context, recordSnap) {
