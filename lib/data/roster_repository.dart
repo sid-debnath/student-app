@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 
@@ -13,14 +15,24 @@ class RosterRepository {
   final InstitutionPaths _paths;
   final _uuid = const Uuid();
 
-  Stream<List<AcademicClass>> watchClasses({List<String>? onlyIds}) {
-    return _paths.classes.orderBy('name').snapshots().map((snap) {
+  Stream<List<AcademicClass>> watchClasses() {
+    return _paths.classes.snapshots().map((snap) {
       final items = snap.docs
           .map((doc) => AcademicClass.fromMap(doc.id, doc.data()))
-          .toList();
-      if (onlyIds == null) return items;
-      return items.where((item) => onlyIds.contains(item.id)).toList();
+          .toList()
+        ..sort((a, b) {
+          final byName = a.name.compareTo(b.name);
+          if (byName != 0) return byName;
+          return a.section.compareTo(b.section);
+        });
+      return items;
     });
+  }
+
+  Future<String?> selectedOrFirstClassId(String? selectedId) async {
+    final classes = await watchClasses().first;
+    if (classes.any((item) => item.id == selectedId)) return selectedId;
+    return classes.isEmpty ? null : classes.first.id;
   }
 
   Stream<List<Student>> watchStudents({String? classId}) {
@@ -38,6 +50,37 @@ class RosterRepository {
     return _paths.students.doc(studentId).snapshots().map((snap) {
       if (!snap.exists || snap.data() == null) return null;
       return Student.fromMap(snap.id, snap.data()!);
+    });
+  }
+
+  Stream<List<Student>> watchStudentsByIds(List<String> ids) {
+    if (ids.isEmpty) return Stream.value(const []);
+    return Stream.multi((controller) {
+      final latest = <String, Student?>{for (final id in ids) id: null};
+      final subs = <StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>[];
+      void emit() {
+        final list = [
+          for (final id in ids)
+            if (latest[id] != null) latest[id]!,
+        ]..sort((a, b) => a.roll.compareTo(b.roll));
+        controller.add(list);
+      }
+
+      for (final id in ids) {
+        subs.add(
+          _paths.students.doc(id).snapshots().listen((snap) {
+            latest[id] = snap.exists && snap.data() != null
+                ? Student.fromMap(snap.id, snap.data()!)
+                : null;
+            emit();
+          }, onError: controller.addError),
+        );
+      }
+      controller.onCancel = () {
+        for (final sub in subs) {
+          unawaited(sub.cancel());
+        }
+      };
     });
   }
 

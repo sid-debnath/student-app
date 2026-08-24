@@ -5,7 +5,6 @@ import '../../core/providers.dart';
 import '../../models/academic_class.dart';
 import '../../models/student.dart';
 import '../../widgets/async_body.dart';
-import '../../widgets/class_dropdown.dart';
 
 class RosterScreen extends ConsumerStatefulWidget {
   const RosterScreen({super.key});
@@ -31,28 +30,75 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
           IconButton(
             tooltip: 'Add class',
             onPressed: () => _editClass(),
-            icon: const Icon(Icons.class_outlined),
+            icon: const Icon(Icons.add),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _classId == null ? null : _editStudent,
+        onPressed: _editStudent,
         child: const Icon(Icons.person_add_alt_1),
       ),
       body: StreamBuilder<List<AcademicClass>>(
         stream: roster.watchClasses(),
         builder: (context, snapshot) {
           final classes = snapshot.data ?? [];
-          final classId = _classId ?? (classes.isEmpty ? null : classes.first.id);
+          final classId = classes.any((item) => item.id == _classId)
+              ? _classId
+              : (classes.isEmpty ? null : classes.first.id);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              ClassDropdown(
-                classes: classes,
-                value: classId,
-                onChanged: (value) => setState(() => _classId = value),
+              Text(
+                'Classes',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
+              Text(
+                'Teachers and parents see every class you add here.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              if (classes.isEmpty)
+                const Text('No classes yet. Tap + to add one (for example 10-A).')
+              else
+                ...[
+                  for (final academicClass in classes)
+                    Card(
+                      color: academicClass.id == classId
+                          ? Theme.of(context).colorScheme.primaryContainer
+                          : null,
+                      child: ListTile(
+                        title: Text(academicClass.label),
+                        subtitle: Text('Year ${academicClass.year}'),
+                        selected: academicClass.id == classId,
+                        onTap: () => setState(() => _classId = academicClass.id),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Edit class',
+                              icon: const Icon(Icons.edit_outlined),
+                              onPressed: () => _editClass(existing: academicClass),
+                            ),
+                            IconButton(
+                              tooltip: 'Delete class',
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => runGuarded(
+                                context,
+                                () => roster.deleteClass(academicClass.id),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              const SizedBox(height: 24),
+              Text(
+                'Students',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
               if (classId == null)
                 const Text('Create a class to add students.')
               else
@@ -88,22 +134,40 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
     );
   }
 
-  Future<void> _editClass() async {
-    final name = TextEditingController();
-    final section = TextEditingController(text: 'A');
-    final year = TextEditingController(text: '${DateTime.now().year}');
+  Future<void> _editClass({AcademicClass? existing}) async {
+    final name = TextEditingController(text: existing?.name ?? '');
+    final section = TextEditingController(text: existing?.section ?? 'A');
+    final year = TextEditingController(
+      text: '${existing?.year ?? DateTime.now().year}',
+    );
     final saved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('New class'),
+        title: Text(existing == null ? 'New class' : 'Edit class'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                hintText: '10',
+              ),
+            ),
             const SizedBox(height: 8),
-            TextField(controller: section, decoration: const InputDecoration(labelText: 'Section')),
+            TextField(
+              controller: section,
+              decoration: const InputDecoration(
+                labelText: 'Section',
+                hintText: 'A',
+              ),
+            ),
             const SizedBox(height: 8),
-            TextField(controller: year, decoration: const InputDecoration(labelText: 'Year')),
+            TextField(
+              controller: year,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Year'),
+            ),
           ],
         ),
         actions: [
@@ -112,22 +176,29 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
         ],
       ),
     );
-    if (saved != true) return;
+    final className = name.text.trim();
+    final classSection = section.text.trim();
+    final classYear = int.tryParse(year.text) ?? DateTime.now().year;
+    name.dispose();
+    section.dispose();
+    year.dispose();
+    if (!mounted || saved != true || className.isEmpty) return;
     await runGuarded(context, () {
       return ref.read(rosterRepositoryProvider)!.upsertClass(
         AcademicClass(
-          id: '',
-          name: name.text.trim(),
-          section: section.text.trim(),
-          year: int.tryParse(year.text) ?? DateTime.now().year,
+          id: existing?.id ?? '',
+          name: className,
+          section: classSection,
+          year: classYear,
+          teacherIds: existing?.teacherIds ?? const [],
         ),
       );
     });
   }
 
   Future<void> _editStudent() async {
-    final classId = _classId;
-    if (classId == null) return;
+    final classId = await ref.read(rosterRepositoryProvider)?.selectedOrFirstClassId(_classId);
+    if (!mounted || classId == null) return;
     final name = TextEditingController();
     final roll = TextEditingController();
     final saved = await showDialog<bool>(
@@ -148,10 +219,14 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
         ],
       ),
     );
-    if (saved != true) return;
+    final studentName = name.text.trim();
+    final studentRoll = roll.text.trim();
+    name.dispose();
+    roll.dispose();
+    if (!mounted || saved != true || studentName.isEmpty) return;
     await runGuarded(context, () {
       return ref.read(rosterRepositoryProvider)!.upsertStudent(
-        Student(id: '', name: name.text.trim(), classId: classId, roll: roll.text.trim()),
+        Student(id: '', name: studentName, classId: classId, roll: studentRoll),
       );
     });
   }

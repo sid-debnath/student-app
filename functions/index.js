@@ -40,20 +40,6 @@ exports.bootstrapInstitution = onCall(async (request) => {
     },
   });
   await getAuth().setCustomUserClaims(uid, {role: "admin", institutionId});
-  const classRef = db.collection("institutions").doc(institutionId).collection("classes").doc();
-  await classRef.set({
-    name: "10",
-    section: "A",
-    year: new Date().getFullYear(),
-    teacherIds: [],
-  });
-  const studentRef = db.collection("institutions").doc(institutionId).collection("students").doc();
-  await studentRef.set({
-    name: "Demo Student",
-    classId: classRef.id,
-    roll: "1",
-    viewerUids: [],
-  });
   await db.collection("institutions").doc(institutionId).collection("users").doc(uid).set({
     email: request.auth.token.email || "",
     displayName,
@@ -62,7 +48,7 @@ exports.bootstrapInstitution = onCall(async (request) => {
     classIds: [],
     studentIds: [],
   });
-  return {institutionId, classId: classRef.id, studentId: studentRef.id};
+  return {institutionId};
 });
 
 exports.createInstitutionUser = onCall(async (request) => {

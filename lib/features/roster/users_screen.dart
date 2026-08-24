@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../models/academic_class.dart';
 import '../../models/app_user.dart';
 import '../../widgets/async_body.dart';
+import '../../widgets/class_chips.dart';
 
 class UsersScreen extends ConsumerStatefulWidget {
   const UsersScreen({super.key});
@@ -19,6 +21,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   final _linkIds = TextEditingController();
   var _role = UserRole.teacher;
   var _busy = false;
+  final _selectedClassIds = <String>{};
 
   @override
   void dispose() {
@@ -31,7 +34,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   Future<void> _create() async {
     setState(() => _busy = true);
-    final ids = _linkIds.text
+    final studentIds = _linkIds.text
         .split(',')
         .map((item) => item.trim())
         .where((item) => item.isNotEmpty)
@@ -42,14 +45,15 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         password: _password.text,
         displayName: _name.text.trim(),
         role: _role,
-        classIds: _role == UserRole.teacher ? ids : const [],
-        studentIds: _role == UserRole.viewer ? ids : const [],
+        classIds: _role == UserRole.teacher ? _selectedClassIds.toList() : const [],
+        studentIds: _role == UserRole.viewer ? studentIds : const [],
       );
       if (!mounted) return;
       _email.clear();
       _password.clear();
       _name.clear();
       _linkIds.clear();
+      setState(() => _selectedClassIds.clear());
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User created')),
       );
@@ -58,6 +62,17 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  String _userSubtitle(AppUser user, List<AcademicClass> classes) {
+    final classLabels = [
+      for (final academicClass in classes)
+        if (user.classIds.contains(academicClass.id)) academicClass.label,
+    ];
+    final extra = user.isTeacher && classLabels.isNotEmpty
+        ? ' · ${classLabels.join(', ')}'
+        : '';
+    return '${user.role.name} · ${user.email}$extra';
   }
 
   @override
@@ -88,15 +103,34 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             ],
             onChanged: (value) => setState(() => _role = value ?? UserRole.teacher),
           ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _linkIds,
-            decoration: InputDecoration(
-              labelText: _role == UserRole.teacher
-                  ? 'Class IDs (comma-separated)'
-                  : 'Student IDs (comma-separated)',
+          const SizedBox(height: 12),
+          if (_role == UserRole.teacher) ...[
+            Text('Classes', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            if (roster == null)
+              const LinearProgressIndicator()
+            else
+              StreamBuilder<List<AcademicClass>>(
+                stream: roster.watchClasses(),
+                builder: (context, snapshot) {
+                  return ClassChips(
+                    classes: snapshot.data ?? [],
+                    selectedIds: _selectedClassIds,
+                    onChanged: (ids) => setState(() {
+                      _selectedClassIds
+                        ..clear()
+                        ..addAll(ids);
+                    }),
+                  );
+                },
+              ),
+          ] else if (_role == UserRole.viewer)
+            TextField(
+              controller: _linkIds,
+              decoration: const InputDecoration(
+                labelText: 'Student IDs (comma-separated)',
+              ),
             ),
-          ),
           const SizedBox(height: 16),
           FilledButton(onPressed: _busy ? null : _create, child: const Text('Create account')),
           const SizedBox(height: 24),
@@ -107,18 +141,24 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
               child: CircularProgressIndicator(),
             )
           else
-            StreamBuilder(
-              stream: roster.watchUsers(),
-              builder: (context, snapshot) {
-                final users = snapshot.data ?? [];
-                return Column(
-                  children: [
-                    for (final user in users)
-                      ListTile(
-                        title: Text(user.displayName.isEmpty ? user.email : user.displayName),
-                        subtitle: Text('${user.role.name} · ${user.email}'),
-                      ),
-                  ],
+            StreamBuilder<List<AcademicClass>>(
+              stream: roster.watchClasses(),
+              builder: (context, classSnap) {
+                final classes = classSnap.data ?? [];
+                return StreamBuilder<List<AppUser>>(
+                  stream: roster.watchUsers(),
+                  builder: (context, snapshot) {
+                    final users = snapshot.data ?? [];
+                    return Column(
+                      children: [
+                        for (final user in users)
+                          ListTile(
+                            title: Text(user.displayName.isEmpty ? user.email : user.displayName),
+                            subtitle: Text(_userSubtitle(user, classes)),
+                          ),
+                      ],
+                    );
+                  },
                 );
               },
             ),

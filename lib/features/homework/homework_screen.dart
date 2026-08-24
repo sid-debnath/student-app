@@ -37,21 +37,28 @@ class _HomeworkScreenState extends ConsumerState<HomeworkScreen> {
             )
           : null,
       body: StreamBuilder<List<AcademicClass>>(
-        stream: roster.watchClasses(onlyIds: session.isTeacher ? session.classIds : null),
+        stream: roster.watchClasses(),
         builder: (context, classSnap) {
           final classes = classSnap.data ?? [];
-          final classId = _classId ?? (classes.isEmpty ? null : classes.first.id);
+          final classId = classes.any((item) => item.id == _classId)
+              ? _classId
+              : (classes.isEmpty ? null : classes.first.id);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              if (!session.isViewer)
-                ClassDropdown(
-                  classes: classes,
-                  value: classId,
-                  onChanged: (value) => setState(() => _classId = value),
-                ),
+              ClassDropdown(
+                classes: classes,
+                value: classId,
+                onChanged: (value) => setState(() => _classId = value),
+              ),
+              if (classId == null)
+                const Padding(
+                  padding: EdgeInsets.only(top: 24),
+                  child: Text('No classes yet. Ask an admin to add one on Roster.'),
+                )
+              else
               StreamBuilder<List<Homework>>(
-                stream: homework.watch(classId: session.isViewer ? null : classId),
+                stream: homework.watch(classId: classId),
                 builder: (context, snap) {
                   final items = snap.data ?? [];
                   if (items.isEmpty) {
@@ -90,8 +97,8 @@ class _HomeworkScreenState extends ConsumerState<HomeworkScreen> {
   }
 
   Future<void> _create() async {
-    final classId = _classId;
-    if (classId == null) return;
+    final classId = await ref.read(rosterRepositoryProvider)?.selectedOrFirstClassId(_classId);
+    if (!mounted || classId == null) return;
     final title = TextEditingController();
     final subject = TextEditingController();
     final body = TextEditingController();
@@ -115,7 +122,7 @@ class _HomeworkScreenState extends ConsumerState<HomeworkScreen> {
         ],
       ),
     );
-    if (saved != true) return;
+    if (!mounted || saved != true) return;
     await runGuarded(context, () {
       return ref.read(homeworkRepositoryProvider)!.upsert(
         Homework(

@@ -76,8 +76,6 @@ class AuthRepository {
       if (error.code != 'permission-denied') rethrow;
     }
 
-    final classRef = institutionRef.collection('classes').doc();
-    final studentRef = institutionRef.collection('students').doc();
     final batch = _db.batch();
     batch.set(institutionRef, {
       'name': institutionName,
@@ -91,18 +89,6 @@ class AuthRepository {
       'institutionId': kDefaultInstitutionId,
       'classIds': <String>[],
       'studentIds': <String>[],
-    });
-    batch.set(classRef, {
-      'name': '10',
-      'section': 'A',
-      'year': DateTime.now().year,
-      'teacherIds': <String>[],
-    });
-    batch.set(studentRef, {
-      'name': 'Demo Student',
-      'classId': classRef.id,
-      'roll': '1',
-      'viewerUids': <String>[],
     });
     await batch.commit();
   }

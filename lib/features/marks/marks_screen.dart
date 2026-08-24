@@ -71,10 +71,12 @@ class _MarksScreenState extends ConsumerState<MarksScreen> {
               },
             )
           : StreamBuilder<List<AcademicClass>>(
-              stream: roster.watchClasses(onlyIds: session.isTeacher ? session.classIds : null),
+              stream: roster.watchClasses(),
               builder: (context, classSnap) {
                 final classes = classSnap.data ?? [];
-                final classId = _classId ?? (classes.isEmpty ? null : classes.first.id);
+                final classId = classes.any((item) => item.id == _classId)
+                    ? _classId
+                    : (classes.isEmpty ? null : classes.first.id);
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
@@ -159,8 +161,8 @@ class _MarksScreenState extends ConsumerState<MarksScreen> {
   }
 
   Future<void> _createExam(BuildContext context) async {
-    final classId = _classId;
-    if (classId == null) return;
+    final classId = await ref.read(rosterRepositoryProvider)?.selectedOrFirstClassId(_classId);
+    if (!mounted || classId == null) return;
     final name = TextEditingController(text: 'Term exam');
     final term = TextEditingController(text: 'Term 1');
     final saved = await showDialog<bool>(
