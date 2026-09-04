@@ -33,6 +33,8 @@ Admins add teachers and viewers from **More → Users**.
 
 This product is **white-label, one institution per deploy**. Each customer gets their own brand pack and (usually) their own Firebase project. Do not put multiple schools in one app unless product later adds a picker.
 
+Full brand-pack spec (file names, sizes, layout, and which folders are generated output): see `brands/README.md`.
+
 ### 1. Brand pack
 
 | File | Purpose | Suggested size |
@@ -49,10 +51,13 @@ This product is **white-label, one institution per deploy**. Each customer gets 
 cp -R brands/_template brands/<customer_id>
 # add images + edit brands/<customer_id>/brand.json
 dart run tool/apply_brand.dart <customer_id>
+dart run flutter_native_splash:create
 dart run flutter_launcher_icons
 ```
 
 The running app **only** reads `assets/branding/` (the active copy). Keep customer source files in `brands/<customer_id>/`.
+
+`apply_brand.dart` also writes `displayName` and `primaryColor` into the platform metadata — Android `android:label`, iOS `CFBundleDisplayName`/`CFBundleName`, the web `<title>` + `manifest.json` name/short_name/theme color, and the `flutter_native_splash` color in `pubspec.yaml` — so the launcher name, browser tab, and native splash background all match the brand. `flutter_native_splash:create` then regenerates the native/web splash from `assets/branding/splash.png`, and `flutter_launcher_icons` regenerates the app icon from `assets/branding/app_icon.png`.
 
 ### 2. Firebase (Spark is enough to start)
 

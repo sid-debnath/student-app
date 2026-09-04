@@ -234,14 +234,19 @@ One **customer** = one brand pack + one Firebase project (typical) + one binary.
 | `logo.png` | In-app logo (login, home app bar) |
 | `background.png` | Login screen backdrop |
 | `app_icon.png` | Android / iOS / web launcher icons via `flutter_launcher_icons` |
-| `splash.png` | Splash / fallback |
+| `splash.png` | Native launch screen image (via `flutter_native_splash`) |
+
+Full spec (file names, sizes, layout, generated files): `brands/README.md`.
 
 ```bash
 cp -R brands/_template brands/<id>
 # drop in artwork, edit brand.json
 dart run tool/apply_brand.dart <id>
+dart run flutter_native_splash:create
 dart run flutter_launcher_icons
 ```
+
+`apply_brand.dart` copies the pack into `assets/branding/` **and** writes `displayName` + `primaryColor` into platform metadata (Android `android:label`, iOS `CFBundleDisplayName`/`CFBundleName`, web `<title>` and `manifest.json` name/short_name/theme color, and the `flutter_native_splash` color in `pubspec.yaml`). `flutter_native_splash:create` then regenerates the native/web splash from `assets/branding/splash.png`, and `flutter_launcher_icons` regenerates launcher icons from `assets/branding/app_icon.png`.
 
 Code must load look from `BrandConfig` / `assets/branding/`, not hard-coded logos. After login, merge optional Firestore `institutions/{id}.branding` (`displayName`, `tagline`, `primaryColor`, `logoUrl`, `backgroundUrl`). Empty URLs keep bundled assets (Spark).
 

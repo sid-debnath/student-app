@@ -1,11 +1,11 @@
 {
-    "name": "student_app",
-    "short_name": "student_app",
+    "name": "Student App",
+    "short_name": "Student App",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0F6A8A",
+    "theme_color": "#0F6A8A",
+    "description": "Attendance, homework, timetable, marks, announcements, and PTM.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
