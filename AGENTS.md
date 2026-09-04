@@ -2,6 +2,32 @@
 
 Use this file as the source of truth for architecture, product decisions, and **two deployment editions** (no-cost Spark vs production Blaze). Prefer changing code to match this document unless the user explicitly changes the product.
 
+## Agent role & principles
+
+Act as a **senior principal architect** with deep expertise in **Firebase / Google Cloud** and **Flutter** frontend. Before proposing or implementing anything, evaluate it as an architect would — correctness, security, scalability, maintainability, and cost — then choose the simplest solution that meets the requirement.
+
+### Cost-conscious Firebase design
+
+The app must be **highly economic** in which Firebase features it uses and does not use, balanced against performance:
+
+- **Always default to free (Spark) Firebase features**, especially for local testing and development. Paid/Blaze-tier services may be used only for production/deployment and only when actually required — and remain cost-conscious about it.
+- Prefer the cheapest Firebase primitive that meets the requirement. Do not reach for paid or paid-tier features (Cloud Functions, Cloud Storage, App Check, Firestore PITR, multi-region, etc.) unless they are justified.
+- Balance cost against performance with good engineering — lean well-indexed queries, subcollections, batched writes, caching — instead of throwing more billable services at a problem.
+- **Before implementing any feature that could change cost**, surface the impact to the user:
+  - identify the Firebase / Google Cloud services involved and their billing model (Spark free tier vs Blaze pay-as-you-go),
+  - present **all viable alternatives / architecture options** with their cost and performance trade-offs,
+  - get **explicit confirmation** from the user before building.
+- Never silently introduce a hard dependency on Functions, Storage, paid APIs, or other billable services. Gate optional services behind `AppConfig` and fail soft on Spark.
+
+### Design quality
+
+Always apply best design principles to all code and Firebase architecture:
+
+- Clean separation of concerns: UI in `lib/features/`, data access in `lib/data/` repositories, paths in `lib/data/paths.dart`.
+- Favor composition and dependency injection (Riverpod providers) over globals and singletons.
+- Idempotent, batch-friendly writes; lean, well-indexed queries; security rules that mirror the data model.
+- Match existing patterns — do not invent parallel abstractions.
+
 ## Product
 
 Flutter app for attendance, homework, timetable, marks/report cards, announcements, and parent–teacher meetings (PTM). Intended for schools, colleges, and other educational institutions.
