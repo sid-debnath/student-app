@@ -23,7 +23,7 @@ class PtmScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Parent-teacher meetings')),
-      floatingActionButton: session.isTeacher || session.isAdmin
+      floatingActionButton: session.isStaff || session.isAdmin
           ? FloatingActionButton(
               onPressed: () => _addSlot(context, ref),
               child: const Icon(Icons.add),
@@ -34,7 +34,7 @@ class PtmScreen extends ConsumerWidget {
         children: [
           Text('Slots', style: Theme.of(context).textTheme.titleMedium),
           StreamBuilder<List<PtmSlot>>(
-            stream: repo.watchSlots(teacherId: session.isTeacher ? session.id : null),
+            stream: repo.watchSlots(teacherId: session.isStaff ? session.id : null),
             builder: (context, snapshot) {
               final slots = snapshot.data ?? [];
               if (slots.isEmpty) {
@@ -93,7 +93,7 @@ class PtmScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  if (session.isTeacher || session.isAdmin)
+                  if (session.isStaff || session.isAdmin)
                     FilledButton(
                       onPressed: () => _addNote(context, ref, studentId),
                       child: const Text('Add note'),

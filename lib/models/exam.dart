@@ -1,31 +1,34 @@
+/// An exam sitting for a class, identified by [examType] (e.g. UT-1).
 class Exam {
   const Exam({
     required this.id,
-    required this.name,
-    required this.term,
+    required this.examType,
     required this.classId,
     this.maxMarks = 100,
   });
 
   final String id;
-  final String name;
-  final String term;
+
+  /// Label such as `UT-1`, `Mid-Term`, etc.
+  final String examType;
   final String classId;
   final int maxMarks;
 
   factory Exam.fromMap(String id, Map<String, dynamic> data) {
+    final examType = (data['examType'] as String?)?.trim();
+    final legacyName = (data['name'] as String?)?.trim();
     return Exam(
       id: id,
-      name: data['name'] as String? ?? '',
-      term: data['term'] as String? ?? '',
+      examType: (examType != null && examType.isNotEmpty)
+          ? examType
+          : (legacyName ?? ''),
       classId: data['classId'] as String? ?? '',
       maxMarks: (data['maxMarks'] as num?)?.toInt() ?? 100,
     );
   }
 
   Map<String, dynamic> toMap() => {
-    'name': name,
-    'term': term,
+    'examType': examType,
     'classId': classId,
     'maxMarks': maxMarks,
   };

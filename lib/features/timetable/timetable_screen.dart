@@ -25,7 +25,7 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
     if (session == null || roster == null || timetable == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final canEdit = session.isAdmin || session.isTeacher;
+    final canEdit = session.isAdmin || session.isStaff;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Timetable')),

@@ -13,6 +13,9 @@ class HomeShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(sessionProvider).valueOrNull;
+    if (profile != null) {
+  ref.read(authRepositoryProvider).saveFcmToken(profile);
+}
     final location = GoRouterState.of(context).uri.path;
     final tabs = _tabsFor(profile?.role ?? UserRole.viewer);
     var index = tabs.indexWhere((tab) => tab.path == location);
@@ -63,8 +66,15 @@ List<_Tab> _tabsFor(UserRole role) {
     case UserRole.teacher:
       return const [
         _Tab('/', 'Home', Icons.home_outlined),
+        _Tab('/attendance', 'Attendance', Icons.fact_check_outlined),
         _Tab('/homework', 'Homework', Icons.menu_book_outlined),
-        _Tab('/announcements', 'News', Icons.campaign_outlined),
+        _Tab('/more', 'More', Icons.grid_view_outlined),
+      ];
+    case UserRole.floorIncharge:
+      return const [
+        _Tab('/', 'Home', Icons.home_outlined),
+        _Tab('/attendance', 'Attendance', Icons.fact_check_outlined),
+        _Tab('/homework', 'Homework', Icons.menu_book_outlined),
         _Tab('/more', 'More', Icons.grid_view_outlined),
       ];
     case UserRole.viewer:

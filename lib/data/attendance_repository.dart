@@ -4,7 +4,8 @@ import '../models/attendance.dart';
 import 'paths.dart';
 
 class AttendanceRepository {
-  AttendanceRepository(this.institutionId) : _paths = InstitutionPaths(institutionId);
+  AttendanceRepository(this.institutionId)
+    : _paths = InstitutionPaths(institutionId);
 
   final String institutionId;
   final InstitutionPaths _paths;
@@ -23,16 +24,18 @@ class AttendanceRepository {
         .where('classId', isEqualTo: classId)
         .snapshots()
         .map(
-          (snap) => snap.docs
-              .map((doc) => AttendanceRecord.fromMap(doc.id, doc.data()))
-              .toList()
-            ..sort((a, b) => b.date.compareTo(a.date)),
+          (snap) =>
+              snap.docs
+                  .map((doc) => AttendanceRecord.fromMap(doc.id, doc.data()))
+                  .toList()
+                ..sort((a, b) => b.date.compareTo(a.date)),
         );
   }
 
   Future<void> save(AttendanceRecord record) {
-    return _paths.attendance
-        .doc(docId(record.classId, record.date))
-        .set(record.toMap(), SetOptions(merge: true));
+    return _paths.attendance.doc(docId(record.classId, record.date)).set({
+      ...record.toMap(),
+      'markedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 }
