@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/account/account_details_screen.dart';
 import '../features/announcements/announcements_screen.dart';
 import '../features/attendance/attendance_screen.dart';
+import '../features/auth/change_password_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/home/dashboard_screen.dart';
 import '../features/home/home_shell.dart';
@@ -20,7 +22,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final refresh = GoRouterRefreshStream(
     ref.watch(authRepositoryProvider).authState(),
   );
-  ref.listen(sessionProvider, (_, __) => refresh.notifyListeners());
+  ref.listen(sessionProvider, (_, _) => refresh.notifyListeners());
   ref.onDispose(refresh.dispose);
 
   return GoRouter(
@@ -36,14 +38,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       final session = ref.read(sessionProvider);
       if (session.isLoading) return null;
-      if (session.valueOrNull == null) {
+      final profile = session.valueOrNull;
+      if (profile == null) {
         return loggingIn ? null : '/login';
       }
-      if (loggingIn) return '/';
+      final changingPassword = state.matchedLocation == '/change-password';
+      if (profile.requiresFirstLoginPasswordChange) {
+        return changingPassword ? null : '/change-password';
+      }
+      if (loggingIn || changingPassword) return '/';
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/change-password',
+        builder: (context, state) => const ChangePasswordScreen(),
+      ),
       ShellRoute(
         builder: (context, state, child) => HomeShell(child: child),
         routes: [
@@ -62,6 +73,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const AnnouncementsScreen(),
           ),
           GoRoute(path: '/more', builder: (context, state) => const MoreScreen()),
+          GoRoute(
+            path: '/account',
+            builder: (context, state) => const AccountDetailsScreen(),
+          ),
           GoRoute(path: '/users', builder: (context, state) => const UsersScreen()),
           GoRoute(
             path: '/timetable',

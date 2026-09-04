@@ -20,13 +20,14 @@ class MoreScreen extends ConsumerWidget {
         _Item('Homework', '/homework', Icons.menu_book_outlined),
         _Item('Attendance', '/attendance', Icons.fact_check_outlined),
       ],
-      UserRole.teacher => const [
+      UserRole.teacher || UserRole.floorIncharge => const [
         _Item('Timetable', '/timetable', Icons.calendar_view_week_outlined),
         _Item('Marks', '/marks', Icons.grade_outlined),
         _Item('Announcements', '/announcements', Icons.campaign_outlined),
         _Item('PTM', '/ptm', Icons.event_outlined),
       ],
       UserRole.viewer => const [
+        _Item('Account Details', '/account', Icons.person_outline),
         _Item('Timetable', '/timetable', Icons.calendar_view_week_outlined),
         _Item('Marks & reports', '/marks', Icons.grade_outlined),
         _Item('Announcements', '/announcements', Icons.campaign_outlined),

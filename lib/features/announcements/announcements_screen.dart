@@ -36,7 +36,7 @@ class AnnouncementsScreen extends ConsumerWidget {
           final items = (snapshot.data ?? []).where((item) {
             return item.visibleTo(
               isAdmin: session.isAdmin,
-              isTeacher: session.isTeacher,
+              isTeacher: session.isStaff,
               isViewer: session.isViewer,
             );
           }).toList();

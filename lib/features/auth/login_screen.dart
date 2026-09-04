@@ -55,7 +55,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               : _displayName.text.trim(),
         );
       } else {
-        await auth.signIn(_email.text.trim(), _password.text);
+        final password = _password.text;
+        final user = await auth.signIn(_email.text.trim(), password);
+        final profile = await auth.watchProfile(user).first.timeout(
+          const Duration(seconds: 8),
+          onTimeout: () => null,
+        );
+        if (profile == null) {
+          await auth.signOut();
+          throw StateError(
+            'This account is not enrolled in the institution. '
+            'Ask your admin to create your user from Users.',
+          );
+        }
+        if (!profile.requiresFirstLoginPasswordChange) {
+          auth.clearTemporaryPasswordMemory();
+        }
       }
     } catch (error) {
       if (mounted) showError(context, error);

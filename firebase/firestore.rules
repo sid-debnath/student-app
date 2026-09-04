@@ -16,14 +16,42 @@ service cloud.firestore {
     function userDoc(iid) {
       return get(userPath(iid)).data;
     }
+    // Profile lives under institutions/{iid}/users/{uid}. Legacy docs may omit
+    // institutionId; the path is still authoritative when the field is missing.
+    function institutionMatches(iid) {
+      return !('institutionId' in userDoc(iid))
+        || userDoc(iid).institutionId == iid;
+    }
+    // Admin recognition does NOT depend on mustChangePassword (legacy admin
+    // docs often omit that field). Teachers/viewers must clear the flag.
     function isAdmin(iid) {
-      return hasProfile(iid) && userDoc(iid).role == 'admin';
+      return hasProfile(iid)
+        && institutionMatches(iid)
+        && userDoc(iid).role == 'admin';
+    }
+    // Teachers/viewers are ready only after mustChangePassword is explicitly
+    // false (missing = still required). Admins are always ready via isAdmin.
+    function passwordReady(iid) {
+      return isAdmin(iid)
+        || (
+          hasProfile(iid)
+          && institutionMatches(iid)
+          && userDoc(iid).mustChangePassword == false
+        );
     }
     function isTeacher(iid) {
-      return hasProfile(iid) && userDoc(iid).role == 'teacher';
+      return passwordReady(iid) && userDoc(iid).role == 'teacher';
+    }
+    function isFloorIncharge(iid) {
+      return passwordReady(iid) && userDoc(iid).role == 'floorIncharge';
+    }
+    // Teachers and floor in-charges share the same staff access in the client
+    // (`AppUser.isStaff`), so keep the rules in sync with that notion.
+    function isStaff(iid) {
+      return isTeacher(iid) || isFloorIncharge(iid);
     }
     function isViewer(iid) {
-      return hasProfile(iid) && userDoc(iid).role == 'viewer';
+      return passwordReady(iid) && userDoc(iid).role == 'viewer';
     }
     function viewerOwnsStudent(iid, studentId) {
       return isViewer(iid) && studentId in userDoc(iid).studentIds;
@@ -31,13 +59,22 @@ service cloud.firestore {
     function bootstrapping(iid) {
       return signedIn() && iid == 'default' && !exists(institutionDoc('default'));
     }
+    // Allow clearing the flag when it is true or missing (legacy enrollments).
+    function completingPasswordChange(iid, uid) {
+      return hasProfile(iid)
+        && request.auth.uid == uid
+        && resource.data.mustChangePassword != false
+        && request.resource.data.mustChangePassword == false
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['mustChangePassword']);
+    }
 
     match /institutions/{iid} {
       allow create: if bootstrapping(iid);
-      // First-time setup must be able to see that the institution doc is missing.
+      // Pending password-change users may load branding; they cannot list/update.
       allow get: if hasProfile(iid)
         || (signedIn() && iid == 'default' && !exists(institutionDoc(iid)));
-      allow list: if hasProfile(iid);
+      allow list: if passwordReady(iid);
       allow update, delete: if isAdmin(iid);
 
       match /users/{uid} {
@@ -51,68 +88,77 @@ service cloud.firestore {
             && request.resource.data.institutionId == iid
           );
         allow update: if isAdmin(iid)
+          || completingPasswordChange(iid, uid)
           || (
-            hasProfile(iid)
+            passwordReady(iid)
             && request.auth.uid == uid
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fcmToken'])
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['fcmToken'])
           );
         allow delete: if isAdmin(iid);
       }
       match /classes/{classId} {
-        allow read: if hasProfile(iid);
+        allow read: if passwordReady(iid);
         allow create: if isAdmin(iid) || bootstrapping(iid);
         allow update, delete: if isAdmin(iid);
       }
       match /students/{studentId} {
-        allow read: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid) || viewerOwnsStudent(iid, studentId));
+        allow read: if isAdmin(iid) || isStaff(iid) || viewerOwnsStudent(iid, studentId);
         allow create: if isAdmin(iid) || bootstrapping(iid);
         allow update, delete: if isAdmin(iid);
       }
       match /attendance/{docId} {
-        allow read: if hasProfile(iid);
-        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        allow read: if passwordReady(iid);
+        allow write: if isAdmin(iid) || isStaff(iid);
       }
       match /homework/{docId} {
-        allow read: if hasProfile(iid);
-        allow create, update, delete: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        allow read: if passwordReady(iid);
+        allow create, update, delete: if isAdmin(iid) || isStaff(iid);
         match /files/{fileId} {
-          allow read: if hasProfile(iid);
-          allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+          allow read: if passwordReady(iid);
+          allow write: if isAdmin(iid) || isStaff(iid);
         }
       }
       match /timetable/{classId}/periods/{periodId} {
-        allow read: if hasProfile(iid);
-        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        allow read: if passwordReady(iid);
+        allow write: if isAdmin(iid) || isStaff(iid);
       }
       match /exams/{docId} {
-        allow read: if hasProfile(iid);
-        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        allow read: if passwordReady(iid);
+        allow write: if isAdmin(iid) || isStaff(iid);
+      }
+      match /subjects/{docId} {
+        allow read: if passwordReady(iid);
+        allow write: if isAdmin(iid);
       }
       match /marks/{docId} {
-        allow read: if hasProfile(iid);
-        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        allow read: if isAdmin(iid) || isStaff(iid)
+          || viewerOwnsStudent(iid, resource.data.studentId);
+        allow write: if isAdmin(iid) || isStaff(iid);
       }
       match /reportCards/{docId} {
-        allow read: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid) || viewerOwnsStudent(iid, resource.data.studentId));
-        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        allow read: if isAdmin(iid) || isStaff(iid)
+          || (isViewer(iid)
+            && resource.data.studentId in userDoc(iid).studentIds);
+        allow write: if isAdmin(iid) || isStaff(iid);
       }
       match /announcements/{docId} {
-        allow read: if hasProfile(iid);
+        allow read: if passwordReady(iid);
         allow write: if isAdmin(iid);
       }
       match /ptmSlots/{docId} {
-        allow read: if hasProfile(iid);
-        allow create, update: if hasProfile(iid) && (isAdmin(iid) || (isTeacher(iid) && request.resource.data.teacherId == request.auth.uid));
-        allow delete: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        allow read: if passwordReady(iid);
+        allow create, update: if isAdmin(iid) || (isStaff(iid) && request.resource.data.teacherId == request.auth.uid);
+        allow delete: if isAdmin(iid) || isStaff(iid);
       }
       match /ptmBookings/{docId} {
-        allow read: if hasProfile(iid);
-        allow create: if hasProfile(iid) && (isAdmin(iid) || isViewer(iid));
-        allow update, delete: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        allow read: if passwordReady(iid);
+        allow create: if isAdmin(iid) || isViewer(iid);
+        allow update, delete: if isAdmin(iid) || isStaff(iid);
       }
       match /ptmNotes/{docId} {
-        allow read: if hasProfile(iid);
-        allow write: if hasProfile(iid) && (isAdmin(iid) || isTeacher(iid));
+        allow read: if passwordReady(iid);
+        allow write: if isAdmin(iid) || isStaff(iid);
       }
     }
   }

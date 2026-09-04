@@ -34,7 +34,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     if (session == null || roster == null || attendance == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final canEdit = session.isAdmin || session.isTeacher;
+    final canEdit = session.isAdmin || session.isStaff;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Attendance')),
@@ -56,22 +56,25 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     : 'No classes yet.',
                 onChanged: (value) => setState(() => _classId = value),
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(_date),
-                trailing: const Icon(Icons.calendar_today),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.tryParse(_date) ?? DateTime.now(),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now().add(const Duration(days: 1)),
-                  );
-                  if (picked != null) {
-                    setState(() => _date = DateFormat('yyyy-MM-dd').format(picked));
-                  }
-                },
-              ),
+              if (!session.isViewer)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(_date),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.tryParse(_date) ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 1)),
+                    );
+                    if (picked != null) {
+                      setState(
+                        () => _date = DateFormat('yyyy-MM-dd').format(picked),
+                      );
+                    }
+                  },
+                ),
               if (classId != null)
                 StreamBuilder<List<Student>>(
                   stream: session.isViewer
@@ -81,45 +84,89 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     final students = (studentSnap.data ?? [])
                         .where((student) => student.classId == classId)
                         .toList();
-                    return StreamBuilder<AttendanceRecord?>(
-                      stream: attendance.watchDay(classId, _date),
-                      builder: (context, recordSnap) {
-                        final marks = Map<String, AttendanceStatus>.from(
-                          recordSnap.data?.marks ?? const {},
-                        );
+                    return StreamBuilder<List<AttendanceRecord>>(
+                      stream: attendance.watchForClass(classId),
+                      builder: (context, historySnap) {
+                        final records =
+                            historySnap.data ?? const <AttendanceRecord>[];
+                        final percentages = <String, double?>{
+                          for (final student in students)
+                            student.id: attendancePercentageFor(
+                              records,
+                              student.id,
+                            ),
+                        };
                         return Column(
                           children: [
-                            for (final student in students)
-                              ListTile(
-                                title: Text(student.name),
-                                subtitle: Text('Roll ${student.roll}'),
-                                trailing: DropdownButton<AttendanceStatus>(
-                                  value: marks[student.id] ?? AttendanceStatus.present,
-                                  onChanged: !canEdit
-                                      ? null
-                                      : (status) {
-                                          if (status == null) return;
-                                          marks[student.id] = status;
-                                          runGuarded(context, () {
-                                            return attendance.save(
-                                              AttendanceRecord(
-                                                id: attendance.docId(classId, _date),
-                                                classId: classId,
-                                                date: _date,
-                                                marks: {
-                                                  for (final item in students)
-                                                    item.id: marks[item.id] ?? AttendanceStatus.present,
-                                                },
-                                                takenBy: session.id,
-                                              ),
-                                            );
-                                          });
-                                        },
-                                  items: [
-                                    for (final status in AttendanceStatus.values)
-                                      DropdownMenuItem(value: status, child: Text(status.name)),
-                                  ],
-                                ),
+                            if (session.isViewer)
+                              _StudentAttendanceTable(
+                                students: students,
+                                records: records,
+                              )
+                            else
+                              StreamBuilder<AttendanceRecord?>(
+                                stream: attendance.watchDay(classId, _date),
+                                builder: (context, recordSnap) {
+                                  final marks =
+                                      Map<String, AttendanceStatus>.from(
+                                        recordSnap.data?.marks ?? const {},
+                                      );
+                                  return Column(
+                                    children: [
+                                      for (final student in students)
+                                        ListTile(
+                                          title: Text(student.name),
+                                          subtitle: Text(
+                                            _studentSubtitle(
+                                              student,
+                                              percentages[student.id],
+                                            ),
+                                          ),
+                                          trailing: DropdownButton<AttendanceStatus>(
+                                            value:
+                                                marks[student.id] ??
+                                                AttendanceStatus.neutral,
+                                            onChanged: !canEdit
+                                                ? null
+                                                : (status) {
+                                                    if (status == null) return;
+                                                    marks[student.id] = status;
+                                                    runGuarded(context, () {
+                                                      return attendance.save(
+                                                        AttendanceRecord(
+                                                          id: attendance.docId(
+                                                            classId,
+                                                            _date,
+                                                          ),
+                                                          classId: classId,
+                                                          date: _date,
+                                                          marks: {
+                                                            for (final item
+                                                                in students)
+                                                              item.id:
+                                                                  marks[item
+                                                                      .id] ??
+                                                                  AttendanceStatus
+                                                                      .neutral,
+                                                          },
+                                                          takenBy: session.id,
+                                                        ),
+                                                      );
+                                                    });
+                                                  },
+                                            items: [
+                                              for (final status
+                                                  in AttendanceStatus.values)
+                                                DropdownMenuItem(
+                                                  value: status,
+                                                  child: Text(status.label),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
+                                  );
+                                },
                               ),
                           ],
                         );
@@ -134,3 +181,114 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     );
   }
 }
+
+String _studentSubtitle(Student student, double? percentage) {
+  final roll = student.roll.isEmpty ? '' : 'Roll ${student.roll}';
+  final percent = percentage == null
+      ? null
+      : '${percentage.toStringAsFixed(0)}% attendance';
+  return [if (roll.isNotEmpty) roll, ?percent].join(' · ');
+}
+
+String _formatPercent(double? value) =>
+    value == null ? '—' : '${value.toStringAsFixed(0)}%';
+
+Color _percentColor(double? value) {
+  if (value == null) return Colors.grey;
+  if (value >= 75) return Colors.green;
+  if (value >= 50) return Colors.orange;
+  return Colors.red;
+}
+
+class _StudentAttendanceTable extends StatelessWidget {
+  const _StudentAttendanceTable({
+    required this.students,
+    required this.records,
+  });
+
+  final List<Student> students;
+  final List<AttendanceRecord> records;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final student in students)
+          _AttendanceTableCard(student: student, records: records),
+      ],
+    );
+  }
+}
+
+class _AttendanceTableCard extends StatelessWidget {
+  const _AttendanceTableCard({required this.student, required this.records});
+
+  final Student student;
+  final List<AttendanceRecord> records;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final stats = attendanceStatsFor(records, student.id);
+    final rows = [
+      for (final record in records)
+        if (record.marks.containsKey(student.id)) record,
+    ];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(student.name, style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              'Working days: ${stats.workingDays} / ${stats.totalDays} '
+              '(${_formatPercent(stats.percentage)})',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: _percentColor(stats.percentage),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (rows.isEmpty)
+              const Text('No attendance recorded yet.')
+            else
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columnSpacing: 24,
+                  columns: const [
+                    DataColumn(label: Text('Date')),
+                    DataColumn(label: Text('Time marked')),
+                    DataColumn(label: Text('Status')),
+                  ],
+                  rows: [
+                    for (final record in rows)
+                      DataRow(
+                        cells: [
+                          DataCell(Text(_formatDate(record.date))),
+                          DataCell(Text(_formatMarkedAt(record.markedAt))),
+                          DataCell(Text(record.marks[student.id]!.label)),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _formatDate(String value) {
+  final parsed = DateTime.tryParse(value);
+  return parsed == null ? value : DateFormat('dd MMM yyyy').format(parsed);
+}
+
+String _formatMarkedAt(DateTime? value) => value == null
+    ? '—'
+    : DateFormat('dd MMM yyyy, hh:mm a').format(value.toLocal());

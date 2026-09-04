@@ -48,6 +48,17 @@ String formatAppError(Object error) {
   if (text.contains('permission-denied')) {
     return 'You do not have permission to do that. Sign in as an admin to add classes.';
   }
+  if (text.contains('invalid-credential') ||
+      text.contains('wrong-password') ||
+      text.contains('user-not-found')) {
+    return 'Wrong email or password. Check what your admin gave you and try again.';
+  }
+  if (text.startsWith('Bad state: ')) {
+    return text.substring('Bad state: '.length);
+  }
+  if (text.startsWith('StateError: ')) {
+    return text.substring('StateError: '.length);
+  }
   return text;
 }
 

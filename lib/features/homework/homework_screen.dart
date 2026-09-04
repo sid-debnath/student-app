@@ -32,7 +32,7 @@ class _HomeworkScreenState extends ConsumerState<HomeworkScreen> {
     if (session == null || roster == null || homework == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final canEdit = session.isAdmin || session.isTeacher;
+    final canEdit = session.isAdmin || session.isStaff;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Homework')),
