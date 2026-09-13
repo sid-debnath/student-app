@@ -1,3 +1,5 @@
+import 'user_preferences.dart';
+
 enum UserRole { admin, teacher, floorIncharge, viewer }
 
 UserRole userRoleFromString(String? value) {
@@ -33,6 +35,7 @@ class AppUser {
     this.viewerAccountType,
     this.fcmToken,
     this.mustChangePassword,
+    this.preferences = const UserPreferences(),
   });
 
   final String id;
@@ -60,6 +63,9 @@ class AppUser {
   /// `true` / `false` when set on the profile; `null` for legacy docs created
   /// before the first-login password-change field existed.
   final bool? mustChangePassword;
+
+  /// User preferences (e.g. theme) persisted on the profile under `preferences`.
+  final UserPreferences preferences;
 
   bool get isAdmin => role == UserRole.admin;
   bool get isTeacher => role == UserRole.teacher;
@@ -120,6 +126,9 @@ class AppUser {
       mustChangePassword: data.containsKey('mustChangePassword')
           ? data['mustChangePassword'] == true
           : null,
+      preferences: UserPreferences.fromMap(
+        data['preferences'] as Map<String, dynamic>?,
+      ),
     );
   }
 
@@ -137,5 +146,6 @@ class AppUser {
       'viewerAccountType': viewerAccountType!.name,
     if (mustChangePassword != null) 'mustChangePassword': mustChangePassword,
     if (fcmToken != null) 'fcmToken': fcmToken,
+    'preferences': preferences.toMap(),
   };
 }

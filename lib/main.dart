@@ -7,7 +7,6 @@ import 'core/branding.dart';
 import 'core/keyboard_shortcuts.dart';
 import 'core/providers.dart';
 import 'core/router.dart';
-import 'core/theme.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -30,9 +29,10 @@ class StudentApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final brand = ref.watch(brandConfigProvider);
+    final theme = ref.watch(themeProvider);
     return MaterialApp.router(
       title: brand.displayName,
-      theme: buildAppTheme(brand),
+      theme: theme.build(brand),
       routerConfig: router,
       builder: (context, child) =>
           AppShortcuts(child: child ?? const SizedBox.shrink()),

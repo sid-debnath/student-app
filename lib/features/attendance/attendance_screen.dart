@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/providers.dart';
+import '../../core/theme.dart';
 import '../../models/attendance.dart';
 import '../../models/academic_class.dart';
 import '../../models/student.dart';
@@ -306,11 +307,12 @@ String _studentSubtitle(Student student, double? percentage) {
 String _formatPercent(double? value) =>
     value == null ? '—' : '${value.toStringAsFixed(0)}%';
 
-Color _percentColor(double? value) {
-  if (value == null) return Colors.grey;
-  if (value >= 75) return Colors.green;
-  if (value >= 50) return Colors.orange;
-  return Colors.red;
+Color _percentColor(BuildContext context, double? value) {
+  final palette = Theme.of(context).extension<StatusPalette>();
+  if (value == null) return palette?.muted ?? Colors.grey;
+  if (value >= 75) return palette?.success ?? Colors.green;
+  if (value >= 50) return palette?.warning ?? Colors.orange;
+  return palette?.danger ?? Colors.red;
 }
 
 class _StudentAttendanceTable extends StatelessWidget {
@@ -373,7 +375,7 @@ class _AttendanceTableCard extends StatelessWidget {
               '(${_formatPercent(stats.percentage)})',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: _percentColor(stats.percentage),
+                color: _percentColor(context, stats.percentage),
               ),
             ),
             const SizedBox(height: 12),

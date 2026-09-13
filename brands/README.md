@@ -57,6 +57,11 @@ brands/
 }
 ```
 
+`primaryColor` seeds the in-app color theme for **both** light and dark
+appearances (via `buildAppTheme` → `ColorScheme.fromSeed`). Semantic status
+colors (attendance %, etc.) come from the active theme's `StatusPalette`, not
+the brand.
+
 Optional (production / remote overrides, applied after login): `logoUrl`,
 `backgroundUrl`.
 

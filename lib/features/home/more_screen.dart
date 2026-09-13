@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/app_theme.dart';
 import '../../core/keyboard_shortcuts.dart';
 import '../../core/providers.dart';
 import '../../models/app_user.dart';
+import '../../models/user_preferences.dart';
+import '../../widgets/async_body.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -36,6 +39,7 @@ class MoreScreen extends ConsumerWidget {
       ],
     };
 
+    final selectedTheme = ref.watch(themeProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('More')),
       body: ListView(
@@ -49,11 +53,57 @@ class MoreScreen extends ConsumerWidget {
             ),
           const Divider(),
           ListTile(
+            leading: const Icon(Icons.palette_outlined),
+            title: const Text('Theme'),
+            subtitle: Text(selectedTheme.label),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _pickTheme(ref, context, selectedTheme.id),
+          ),
+          ListTile(
             leading: const Icon(Icons.keyboard_outlined),
             title: const Text('Keyboard shortcuts'),
             onTap: () => showKeyboardShortcutsDialog(context, role),
           ),
         ],
+      ),
+    );
+  }
+
+  void _pickTheme(WidgetRef ref, BuildContext context, String currentId) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Theme'),
+        children: [
+          RadioGroup<String>(
+            groupValue: currentId,
+            onChanged: (id) {
+              Navigator.pop(dialogContext);
+              if (id == null || id == currentId) return;
+              _saveTheme(ref, context, id);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final theme in appThemes)
+                  RadioListTile<String>(
+                    value: theme.id,
+                    title: Text(theme.label),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _saveTheme(WidgetRef ref, BuildContext context, String themeId) {
+    guard(
+      context,
+      () => ref.read(authRepositoryProvider).updatePreference(
+        UserPreferences.themeIdKey,
+        themeId,
       ),
     );
   }

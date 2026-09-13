@@ -68,6 +68,16 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['mustChangePassword']);
     }
+    // A user may update only their own `preferences` map (theme, locale, …).
+    // `update` writes use dot-notation (e.g. `preferences.themeMode`), so the
+    // single affected top-level key is `preferences` and sibling fields/keys
+    // are untouched.
+    function selfPreferenceUpdate(iid, uid) {
+      return passwordReady(iid)
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['preferences']);
+    }
 
     match /institutions/{iid} {
       allow create: if bootstrapping(iid);
@@ -94,7 +104,8 @@ service cloud.firestore {
             && request.auth.uid == uid
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['fcmToken'])
-          );
+          )
+          || selfPreferenceUpdate(iid, uid);
         allow delete: if isAdmin(iid);
       }
       match /classes/{classId} {
