@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -18,6 +19,8 @@ import '../features/timetable/timetable_screen.dart';
 import 'providers.dart';
 import 'refresh_stream.dart';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = GoRouterRefreshStream(
     ref.watch(authRepositoryProvider).authState(),
@@ -27,6 +30,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/',
+    navigatorKey: rootNavigatorKey,
     refreshListenable: refresh,
     redirect: (context, state) {
       final loggingIn = state.matchedLocation == '/login';

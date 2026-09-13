@@ -48,7 +48,7 @@ class AnnouncementRepository {
         id: id,
         title: announcement.title,
         body: announcement.body,
-        audience: announcement.audience,
+        audiences: announcement.audiences,
         classIds: announcement.classIds,
         imageUrls: urls,
         createdBy: announcement.createdBy,

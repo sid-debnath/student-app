@@ -38,4 +38,26 @@ class AttendanceRepository {
       'markedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
+
+  /// Deletes the entire attendance record for [classId] on [date].
+  Future<void> deleteDay(String classId, String date) {
+    return _paths.attendance.doc(docId(classId, date)).delete();
+  }
+
+  /// Removes a single student's mark from the [classId] attendance record for
+  /// [date]. If that leaves no marks behind, the whole document is deleted.
+  Future<void> deleteMark(String classId, String date, String studentId) async {
+    final ref = _paths.attendance.doc(docId(classId, date));
+    final snap = await ref.get();
+    if (!snap.exists) return;
+    final data = Map<String, dynamic>.from(snap.data() ?? const {});
+    final marks = Map<String, dynamic>.from(data['marks'] as Map? ?? const {});
+    if (!marks.containsKey(studentId)) return;
+    marks.remove(studentId);
+    if (marks.isEmpty) {
+      await ref.delete();
+    } else {
+      await ref.update({'marks': marks});
+    }
+  }
 }

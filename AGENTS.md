@@ -299,3 +299,15 @@ Operator-facing copy of this checklist is in `README.md`.
 - Production client must fall back to Spark paths if callables or Storage fail
 - Do not re-clone Flutter into `$HOME/flutter`; use `/opt/homebrew/bin/flutter`
 - Git: `safe.directory` for `/opt/homebrew/share/flutter` if “dubious ownership” appears
+
+### Keyboard shortcuts
+
+All keyboard shortcuts live in `lib/core/keyboard_shortcuts.dart` and are registered once, globally, by the `AppShortcuts` widget wired in `lib/main.dart`. Follow these rules when adding or changing any:
+
+- **Single source of truth:** declare every shortcut as an `AppShortcut` in `lib/core/keyboard_shortcuts.dart`. Do **not** add ad-hoc `Shortcuts`/`CallbackShortcuts`/`ShortcutActivator` widgets inside individual screens.
+- **Navigation** shortcuts use `Alt` (Option on macOS) + a **letter** (`SingleActivator(LogicalKeyboardKey.keyX, alt: true)`). Letters must stay unique across the app.
+- **Role-scoping:** add navigation entries to `navigationShortcuts(UserRole)` and gate them via `_allowedPaths(role)` so each role only gets the shortcuts for its bottom tabs + More screen. Keep these in sync when adding new screens or roles.
+- **Help** opens the shortcuts dialog via `F1`, `Ctrl + /`, or `?` (Shift+`/`); these are defined in `helpShortcut`.
+- **Labels:** every shortcut carries a `keysLabel` string that matches its activators (e.g. `"Alt + H"`, `"F1 · Ctrl + / · ?"`). It must also appear in the help dialog and be covered in `test/keyboard_shortcuts_test.dart`.
+- **Avoid collisions:** do not use `Ctrl`/`Cmd` + letter for navigation (conflicts with Flutter text-editing defaults and browser/system keys). Prefer `Alt` + letter; use `F1`/`Ctrl + /`/`?` for help.
+- **Form submit:** text forms submit on Enter via `textInputAction` (`next` between fields, `done` on the final field) and `onSubmitted`, as in `lib/features/auth/login_screen.dart`.

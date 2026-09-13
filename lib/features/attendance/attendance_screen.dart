@@ -19,6 +19,7 @@ class AttendanceScreen extends ConsumerStatefulWidget {
 class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   String? _classId;
   late String _date;
+  bool _showHistory = false;
 
   @override
   void initState() {
@@ -35,6 +36,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final canEdit = session.isAdmin || session.isStaff;
+    // Only admins and floor in-charges may delete attendance history.
+    final canDelete = session.isAdmin || session.isFloorIncharge;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Attendance')),
@@ -98,10 +101,34 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                         };
                         return Column(
                           children: [
-                            if (session.isViewer)
+                            if (!session.isViewer) ...[
+                              SegmentedButton<bool>(
+                                segments: const [
+                                  ButtonSegment(
+                                    value: false,
+                                    label: Text('Mark'),
+                                    icon: Icon(Icons.edit_note),
+                                  ),
+                                  ButtonSegment(
+                                    value: true,
+                                    label: Text('History'),
+                                    icon: Icon(Icons.history),
+                                  ),
+                                ],
+                                selected: {_showHistory},
+                                onSelectionChanged: (selection) => setState(
+                                  () => _showHistory = selection.first,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            if (session.isViewer || _showHistory)
                               _StudentAttendanceTable(
                                 students: students,
                                 records: records,
+                                onDeleteMark: !session.isViewer && canDelete
+                                    ? _confirmDeleteMark
+                                    : null,
                               )
                             else
                               StreamBuilder<AttendanceRecord?>(
@@ -164,6 +191,18 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                             ],
                                           ),
                                         ),
+                                      if (recordSnap.data != null && canDelete)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 8),
+                                          child: OutlinedButton.icon(
+                                            onPressed: () =>
+                                                _confirmDeleteDay(classId),
+                                            icon: const Icon(Icons.delete_outline),
+                                            label: const Text(
+                                              "Delete this day's attendance",
+                                            ),
+                                          ),
+                                        ),
                                     ],
                                   );
                                 },
@@ -179,6 +218,80 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _confirmDeleteMark(
+    Student student,
+    AttendanceRecord record,
+  ) async {
+    final attendance = ref.read(attendanceRepositoryProvider);
+    if (attendance == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete attendance record?'),
+        content: Text(
+          'Remove ${_formatDate(record.date)} attendance for '
+          '${student.name}? This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await runGuarded(context, () async {
+      await attendance.deleteMark(record.classId, record.date, student.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Deleted ${_formatDate(record.date)} attendance for '
+            '${student.name}.',
+          ),
+        ),
+      );
+    });
+  }
+
+  Future<void> _confirmDeleteDay(String classId) async {
+    final attendance = ref.read(attendanceRepositoryProvider);
+    if (attendance == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete day attendance?'),
+        content: Text(
+          'Delete the whole attendance record for ${_formatDate(_date)}? '
+          'This removes marks for every student and cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await runGuarded(context, () async {
+      await attendance.deleteDay(classId, _date);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Deleted attendance for ${_formatDate(_date)}.')),
+      );
+    });
   }
 }
 
@@ -204,10 +317,12 @@ class _StudentAttendanceTable extends StatelessWidget {
   const _StudentAttendanceTable({
     required this.students,
     required this.records,
+    this.onDeleteMark,
   });
 
   final List<Student> students;
   final List<AttendanceRecord> records;
+  final void Function(Student student, AttendanceRecord record)? onDeleteMark;
 
   @override
   Widget build(BuildContext context) {
@@ -215,17 +330,26 @@ class _StudentAttendanceTable extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final student in students)
-          _AttendanceTableCard(student: student, records: records),
+          _AttendanceTableCard(
+            student: student,
+            records: records,
+            onDeleteMark: onDeleteMark,
+          ),
       ],
     );
   }
 }
 
 class _AttendanceTableCard extends StatelessWidget {
-  const _AttendanceTableCard({required this.student, required this.records});
+  const _AttendanceTableCard({
+    required this.student,
+    required this.records,
+    this.onDeleteMark,
+  });
 
   final Student student;
   final List<AttendanceRecord> records;
+  final void Function(Student student, AttendanceRecord record)? onDeleteMark;
 
   @override
   Widget build(BuildContext context) {
@@ -260,10 +384,11 @@ class _AttendanceTableCard extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
                   columnSpacing: 24,
-                  columns: const [
-                    DataColumn(label: Text('Date')),
-                    DataColumn(label: Text('Time marked')),
-                    DataColumn(label: Text('Status')),
+                  columns: [
+                    const DataColumn(label: Text('Date')),
+                    const DataColumn(label: Text('Time marked')),
+                    const DataColumn(label: Text('Status')),
+                    if (onDeleteMark != null) const DataColumn(label: Text('')),
                   ],
                   rows: [
                     for (final record in rows)
@@ -272,6 +397,15 @@ class _AttendanceTableCard extends StatelessWidget {
                           DataCell(Text(_formatDate(record.date))),
                           DataCell(Text(_formatMarkedAt(record.markedAt))),
                           DataCell(Text(record.marks[student.id]!.label)),
+                          if (onDeleteMark != null)
+                            DataCell(
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 18),
+                                tooltip: 'Delete this record',
+                                color: Theme.of(context).colorScheme.error,
+                                onPressed: () => onDeleteMark!(student, record),
+                              ),
+                            ),
                         ],
                       ),
                   ],

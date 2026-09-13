@@ -36,7 +36,8 @@ class AnnouncementsScreen extends ConsumerWidget {
           final items = (snapshot.data ?? []).where((item) {
             return item.visibleTo(
               isAdmin: session.isAdmin,
-              isTeacher: session.isStaff,
+              isTeacher: session.isTeacher,
+              isFloorIncharge: session.isFloorIncharge,
               isViewer: session.isViewer,
             );
           }).toList();
@@ -56,7 +57,7 @@ class AnnouncementsScreen extends ConsumerWidget {
                         title: Text(item.title),
                         subtitle: Text(
                           '${item.audienceLabel}'
-                          '${item.createdAt == null ? '' : ' · ${DateFormat.yMMMd().format(item.createdAt!)}'}\n'
+                          '${item.createdAt == null ? '' : ' · ${DateFormat('dd MMM yyyy, hh:mm a').format(item.createdAt!.toLocal())}'}\n'
                           '${item.body}',
                         ),
                         isThreeLine: true,
@@ -106,7 +107,7 @@ class AnnouncementsScreen extends ConsumerWidget {
           id: existing?.id ?? '',
           title: draft.title,
           body: draft.body,
-          audience: draft.audience,
+          audiences: draft.audiences,
           classIds: existing?.classIds ?? session?.classIds ?? const [],
           imageUrls: existing?.imageUrls ?? const [],
           createdBy: existing?.createdBy ?? session?.id,
@@ -149,14 +150,14 @@ class _AnnouncementDraft {
   const _AnnouncementDraft({
     required this.title,
     required this.body,
-    required this.audience,
+    required this.audiences,
     this.imageBytes,
     this.imageName,
   });
 
   final String title;
   final String body;
-  final String audience;
+  final List<String> audiences;
   final Uint8List? imageBytes;
   final String? imageName;
 }
@@ -173,7 +174,7 @@ class _AnnouncementFormDialog extends StatefulWidget {
 class _AnnouncementFormDialogState extends State<_AnnouncementFormDialog> {
   final _title = TextEditingController();
   final _body = TextEditingController();
-  var _audience = 'both';
+  final _audiences = <String>{'teachers', 'floorIncharge', 'students'};
   Uint8List? _imageBytes;
   String? _imageName;
 
@@ -184,7 +185,11 @@ class _AnnouncementFormDialogState extends State<_AnnouncementFormDialog> {
     if (existing != null) {
       _title.text = existing.title;
       _body.text = existing.body;
-      _audience = existing.audience == 'all' ? 'both' : existing.audience;
+      if (existing.audiences.isNotEmpty) {
+        _audiences
+          ..clear()
+          ..addAll(existing.audiences);
+      }
     }
   }
 
@@ -214,7 +219,11 @@ class _AnnouncementFormDialogState extends State<_AnnouncementFormDialog> {
       _AnnouncementDraft(
         title: _title.text.trim(),
         body: _body.text.trim(),
-        audience: _audience,
+        audiences: [
+          'teachers',
+          'floorIncharge',
+          'students',
+        ].where(_audiences.contains).toList(),
         imageBytes: _imageBytes,
         imageName: _imageName,
       ),
@@ -241,16 +250,27 @@ class _AnnouncementFormDialogState extends State<_AnnouncementFormDialog> {
             const SizedBox(height: 16),
             Text('Audience', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'teachers', label: Text('Teachers')),
-                ButtonSegment(value: 'students', label: Text('Students')),
-                ButtonSegment(value: 'both', label: Text('Both')),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final entry in const {
+                  'teachers': 'Teachers',
+                  'floorIncharge': 'Floor In-Charge',
+                  'students': 'Students',
+                }.entries)
+                  FilterChip(
+                    label: Text(entry.value),
+                    selected: _audiences.contains(entry.key),
+                    onSelected: (selected) => setState(() {
+                      if (selected) {
+                        _audiences.add(entry.key);
+                      } else {
+                        _audiences.remove(entry.key);
+                      }
+                    }),
+                  ),
               ],
-              selected: {_audience},
-              onSelectionChanged: (value) {
-                setState(() => _audience = value.first);
-              },
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(

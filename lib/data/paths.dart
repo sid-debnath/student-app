@@ -29,4 +29,8 @@ class InstitutionPaths {
 
   CollectionReference<Map<String, dynamic>> periods(String classId) =>
       col('timetable').doc(classId).collection('periods');
+  CollectionReference<Map<String, dynamic>> periodPhotos(
+    String classId,
+    String periodId,
+  ) => periods(classId).doc(periodId).collection('photos');
 }

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:student_app/core/app_config.dart';
 import 'package:student_app/core/theme.dart';
 import 'package:student_app/data/auth_repository.dart';
+import 'package:student_app/models/announcement.dart';
 import 'package:student_app/models/app_user.dart';
 import 'package:student_app/models/attendance.dart';
 import 'package:student_app/models/exam.dart';
@@ -295,6 +296,34 @@ void main() {
       expect(exam.examType, 'Mid-Term');
     });
 
+    test('exam parses class analytics snapshot', () {
+      final exam = Exam.fromMap('e3', {
+        'examType': 'UT-1',
+        'classId': 'c1',
+        'classAverage': 74.5,
+        'classHighest': 96.0,
+        'classLowest': 41.0,
+        'topperName': 'Aarav',
+        'topperStudentId': 's2',
+        'lowestName': 'Bela',
+        'lowestStudentId': 's3',
+        'analyticsUpdatedAt': DateTime(2026, 1, 2).toIso8601String(),
+      });
+      expect(exam.hasAnalytics, isTrue);
+      expect(exam.classAverage, closeTo(74.5, 0.001));
+      expect(exam.classHighest, closeTo(96.0, 0.001));
+      expect(exam.classLowest, closeTo(41.0, 0.001));
+      expect(exam.topperName, 'Aarav');
+      expect(exam.lowestName, 'Bela');
+      expect(exam.analyticsUpdatedAt, DateTime(2026, 1, 2));
+    });
+
+    test('exam without analytics reports no snapshot', () {
+      final exam = Exam.fromMap('e4', {'examType': 'UT-1', 'classId': 'c1'});
+      expect(exam.hasAnalytics, isFalse);
+      expect(exam.toMap().containsKey('classHighest'), isFalse);
+    });
+
     test('student marks store scores by subject id and optional image', () {
       final row = StudentMarks.fromMap('m1', {
         'examId': 'e1',
@@ -328,5 +357,94 @@ void main() {
       expect(subject.name, 'Science');
       expect(subject.toMap()['order'], 2);
     });
+  });
+
+  test('announcements support multi-role targeting', () {
+    Announcement ann(List<String> audiences) => Announcement(
+      id: 'a1',
+      title: 'T',
+      body: 'B',
+      audiences: audiences,
+    );
+
+    bool visible(List<String> audiences, UserRole role) {
+      return ann(audiences).visibleTo(
+        isAdmin: role == UserRole.admin,
+        isTeacher: role == UserRole.teacher,
+        isFloorIncharge: role == UserRole.floorIncharge,
+        isViewer: role == UserRole.viewer,
+      );
+    }
+
+    // Single role: floor in-charge only.
+    expect(visible(['floorIncharge'], UserRole.floorIncharge), isTrue);
+    expect(visible(['floorIncharge'], UserRole.teacher), isFalse);
+    expect(visible(['floorIncharge'], UserRole.viewer), isFalse);
+    expect(visible(['floorIncharge'], UserRole.admin), isTrue);
+
+    // Multiple roles: teachers + students.
+    expect(visible(['teachers', 'students'], UserRole.teacher), isTrue);
+    expect(visible(['teachers', 'students'], UserRole.viewer), isTrue);
+    expect(visible(['teachers', 'students'], UserRole.floorIncharge), isFalse);
+
+    // Everyone.
+    expect(
+      visible(['teachers', 'floorIncharge', 'students'], UserRole.viewer),
+      isTrue,
+    );
+
+    // Empty means everyone.
+    expect(visible([], UserRole.teacher), isTrue);
+    expect(visible([], UserRole.viewer), isTrue);
+
+    // Labels.
+    expect(ann(['teachers', 'students']).audienceLabel, 'Teachers and Students');
+    expect(ann(['floorIncharge']).audienceLabel, 'Floor In-Charges only');
+    expect(
+      ann(['teachers', 'floorIncharge', 'students']).audienceLabel,
+      'Everyone',
+    );
+  });
+
+  test('announcements read legacy audience string into roles', () {
+    final teachers = Announcement.fromMap('a1', {
+      'title': 'T',
+      'body': 'B',
+      'audience': 'teachers',
+    });
+    expect(teachers.audiences, ['teachers']);
+    expect(
+      teachers.visibleTo(
+        isAdmin: false,
+        isTeacher: true,
+        isFloorIncharge: false,
+        isViewer: false,
+      ),
+      isTrue,
+    );
+    expect(
+      teachers.visibleTo(
+        isAdmin: false,
+        isTeacher: false,
+        isFloorIncharge: true,
+        isViewer: false,
+      ),
+      isFalse,
+    );
+
+    final both = Announcement.fromMap('a2', {
+      'title': 'T',
+      'body': 'B',
+      'audience': 'both',
+    });
+    expect(
+      both.visibleTo(
+        isAdmin: false,
+        isTeacher: false,
+        isFloorIncharge: true,
+        isViewer: false,
+      ),
+      isTrue,
+    );
   });
 }

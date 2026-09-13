@@ -137,23 +137,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             TextField(
                               controller: _email,
                               keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                               decoration: const InputDecoration(labelText: 'Email'),
                             ),
                             const SizedBox(height: 12),
                             TextField(
                               controller: _password,
                               obscureText: true,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) {
+                                if (_busy) return;
+                                _submit(register: _setup);
+                              },
                               decoration: const InputDecoration(labelText: 'Password'),
                             ),
                             if (_setup) ...[
                               const SizedBox(height: 12),
                               TextField(
                                 controller: _displayName,
+                                textInputAction: TextInputAction.next,
+                                onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                                 decoration: const InputDecoration(labelText: 'Your name'),
                               ),
                               const SizedBox(height: 12),
                               TextField(
                                 controller: _institutionName,
+                                textInputAction: TextInputAction.done,
+                                onSubmitted: (_) {
+                                  if (_busy) return;
+                                  _submit(register: _setup);
+                                },
                                 decoration: const InputDecoration(labelText: 'Institution name'),
                               ),
                             ],
