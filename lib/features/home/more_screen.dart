@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/keyboard_shortcuts.dart';
 import '../../core/providers.dart';
 import '../../models/app_user.dart';
 
@@ -46,6 +47,12 @@ class MoreScreen extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.go(item.path),
             ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.keyboard_outlined),
+            title: const Text('Keyboard shortcuts'),
+            onTap: () => showKeyboardShortcutsDialog(context, role),
+          ),
         ],
       ),
     );

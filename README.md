@@ -11,6 +11,29 @@ See `AGENTS.md` for architecture and the build/deploy switch (`lib/core/app_conf
 
 Roles: **admin**, **teacher**, **viewer** (parent and student share viewer).
 
+## Keyboard shortcuts
+
+Work on web/desktop (and any device with a hardware keyboard). Source of truth: `lib/core/keyboard_shortcuts.dart`.
+
+- **Show shortcuts:** `F1`, `Ctrl + /`, or `?` (also **More → Keyboard shortcuts**).
+- **Navigate:** `Alt` + letter (Option on macOS), scoped to the signed-in role:
+
+| Action | Key |
+|--------|-----|
+| Home | `Alt + H` |
+| Attendance | `Alt + A` |
+| Homework | `Alt + W` |
+| Timetable | `Alt + T` |
+| Marks & reports | `Alt + G` |
+| Announcements | `Alt + N` |
+| PTM | `Alt + P` |
+| More | `Alt + M` |
+| Roster (admin) | `Alt + R` |
+| Users (admin) | `Alt + U` |
+| Account details (viewer) | `Alt + C` |
+
+The login form submits on **Enter**.
+
 ## No-cost setup
 
 1. Email/password Auth and Firestore on project `student-mgmt-sdd2011-bddf7` (already done).

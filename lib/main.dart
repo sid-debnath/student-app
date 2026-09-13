@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/branding.dart';
+import 'core/keyboard_shortcuts.dart';
 import 'core/providers.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
@@ -33,6 +34,8 @@ class StudentApp extends ConsumerWidget {
       title: brand.displayName,
       theme: buildAppTheme(brand),
       routerConfig: router,
+      builder: (context, child) =>
+          AppShortcuts(child: child ?? const SizedBox.shrink()),
     );
   }
 }
