@@ -1,6 +1,4 @@
-import 'dart:convert';
 import 'dart:typed_data';
-import 'package:http/http.dart' as http;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -477,7 +475,13 @@ if (profile == null) {
           ),
         );
       }
-      await repo.saveClassMarks(exam: exam, rows: rows);
+      await repo.saveClassMarks(
+        exam: exam,
+        rows: rows,
+        studentNames: {
+          for (final student in students) student.id: student.name,
+        },
+      );
       if (!mounted) return;
       if (showSnackBar) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -519,11 +523,6 @@ if (profile == null) {
       };
       final subjectNames = {for (final s in subjects) s.id: s.name};
 
-final profile = ref.read(sessionProvider).value;
-if (profile == null) {
-  throw StateError('Admin profile not available.');
-}
-
       for (final student in students) {
         final row = latest[student.id];
         if (row == null || row.scores.isEmpty) continue;
@@ -542,28 +541,6 @@ if (profile == null) {
             imageUrl: row.reportImageUrl,
           ),
         );
-        final firebaseUser = ref.read(authRepositoryProvider).auth.currentUser;
-
-if (firebaseUser != null) {
-  final idToken = await firebaseUser.getIdToken();
-
-  if (idToken != null) {
-    await http.post(
-      Uri.parse(
-        'https://iloqcnjehbstqrcjszyk.supabase.co/functions/v1/send-report-notification',
-      ),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      },
-      body: jsonEncode({
-  'studentId': student.id,
-  'examType': exam.examType,
-  'institutionId': profile.institutionId,
-}),
-    );
-  }
-}
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -581,60 +558,216 @@ class _ViewerReportCards extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final marks = ref.watch(marksRepositoryProvider);
-    if (marks == null) {
+    final roster = ref.watch(rosterRepositoryProvider);
+    if (marks == null || roster == null) {
       return const Center(child: CircularProgressIndicator());
     }
     if (studentId == null || studentId!.isEmpty) {
       return const Center(child: Text('No linked student found.'));
     }
-    return StreamBuilder<List<ReportCard>>(
-      stream: marks.watchReportCards(studentId: studentId),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-  return Center(
-    child: Text('Error: ${snapshot.error}'),
-  );
-}
-        final cards = snapshot.data ?? [];
-        if (cards.isEmpty) {
-          return const Center(child: Text('No published report cards yet.'));
-        }
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            for (final card in cards)
-              Card(
-                child: ListTile(
-                  title: Text(card.examType),
-                  subtitle: Text(
-                    '${DateFormat.yMMMd().format(card.publishedAt)}\n'
-                    '${card.scores.entries.map((e) => '${e.key}: ${e.value}').join(', ')}'
-                    '${card.remarks == null ? '' : '\n${card.remarks}'}',
-                  ),
-                  isThreeLine: true,
-                  trailing: card.imageUrl == null || card.imageUrl!.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Open report image',
-                          icon: const Icon(Icons.image_outlined),
-                          onPressed: () async {
-                            final uri = Uri.tryParse(card.imageUrl!);
-                            if (uri != null) {
-                              await launchUrl(
-                                uri,
-                                mode: LaunchMode.externalApplication,
-                              );
-                            }
-                          },
-                        ),
-                ),
-              ),
-          ],
+
+    return StreamBuilder<Student?>(
+      stream: roster.watchStudent(studentId!),
+      builder: (context, studentSnap) {
+        final classId = studentSnap.data?.classId ?? '';
+        return StreamBuilder<List<ReportCard>>(
+          stream: marks.watchReportCards(studentId: studentId),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            final cards = snapshot.data ?? const <ReportCard>[];
+            if (cards.isEmpty) {
+              return const Center(child: Text('No published report cards yet.'));
+            }
+            return StreamBuilder<List<Exam>>(
+              stream: classId.isEmpty
+                  ? Stream.value(const <Exam>[])
+                  : marks.watchExams(classId: classId),
+              builder: (context, examSnap) {
+                final exams = examSnap.data ?? const <Exam>[];
+                final examByType = <String, Exam>{
+                  for (final exam in exams)
+                    exam.examType.trim().toLowerCase(): exam,
+                };
+                return ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    for (final card in cards)
+                      _ReportCardTile(
+                        card: card,
+                        exam: examByType[card.examType.trim().toLowerCase()],
+                      ),
+                  ],
+                );
+              },
+            );
+          },
         );
       },
     );
   }
 }
+
+class _ReportCardTile extends StatelessWidget {
+  const _ReportCardTile({required this.card, this.exam});
+
+  final ReportCard card;
+  final Exam? exam;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scores = card.scores;
+    final total = scores.values.fold(0.0, (sum, value) => sum + value);
+    final subjectCount = scores.length;
+    final average = subjectCount == 0 ? 0.0 : total / subjectCount;
+    // Each subject is stored out of 100, so the overall percentage is the same
+    // as the average of the subject marks.
+    final percentage = average;
+    final hasClassAnalytics = exam?.hasAnalytics ?? false;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(card.examType, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 2),
+            Text(
+              DateFormat.yMMMd().format(card.publishedAt),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (card.remarks != null && card.remarks!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(card.remarks!),
+            ],
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _StatCard(
+                  label: 'Average marks',
+                  value: _formatMark(average),
+                ),
+                _StatCard(
+                  label: 'Percentage',
+                  value: '${_formatMark(percentage)}%',
+                ),
+                if (hasClassAnalytics) ...[
+                  _StatCard(
+                    label: 'Class topper',
+                    value: _displayName(exam!.topperName),
+                    detail: '${_formatMark(exam!.classHighest!)}%',
+                  ),
+                  _StatCard(
+                    label: 'Least marks',
+                    value: _displayName(exam!.lowestName),
+                    detail: '${_formatMark(exam!.classLowest!)}%',
+                  ),
+                  _StatCard(
+                    label: 'Class average',
+                    value: '${_formatMark(exam!.classAverage!)}%',
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text('Subject marks', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            if (scores.isEmpty)
+              const Text('No subject scores published.')
+            else
+              for (final entry in scores.entries)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(entry.key)),
+                      Text(_formatMark(entry.value)),
+                    ],
+                  ),
+                ),
+            if (card.imageUrl != null && card.imageUrl!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final uri = Uri.tryParse(card.imageUrl!);
+                    if (uri != null) {
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.image_outlined),
+                  label: const Text('Open report image'),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({required this.label, required this.value, this.detail});
+
+  final String label;
+  final String value;
+  final String? detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.labelSmall),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (detail != null) ...[
+            const SizedBox(height: 2),
+            Text(detail!, style: theme.textTheme.bodySmall),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+String _displayName(String? name) {
+  return (name == null || name.trim().isEmpty) ? '—' : name.trim();
+}
+
+String _formatMark(double value) {
+  if (value == value.roundToDouble()) return '${value.round()}';
+  return value.toStringAsFixed(1);
+}
+
 
 class _SubjectsAdminSection extends ConsumerStatefulWidget {
   const _SubjectsAdminSection({

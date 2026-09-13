@@ -5,7 +5,7 @@ class Announcement {
     required this.id,
     required this.title,
     required this.body,
-    required this.audience,
+    this.audiences = const [],
     this.classIds = const [],
     this.imageUrls = const [],
     this.createdBy,
@@ -15,42 +15,56 @@ class Announcement {
   final String id;
   final String title;
   final String body;
-  /// teachers | students | both | all (legacy)
-  final String audience;
+
+  /// Selected target roles for the announcement. Each entry is one of
+  /// 'teachers', 'floorIncharge', or 'students'. An empty list means everyone.
+  final List<String> audiences;
   final List<String> classIds;
   final List<String> imageUrls;
   final String? createdBy;
   final DateTime? createdAt;
 
-  bool visibleTo({required bool isAdmin, required bool isTeacher, required bool isViewer}) {
+  bool visibleTo({
+    required bool isAdmin,
+    required bool isTeacher,
+    required bool isFloorIncharge,
+    required bool isViewer,
+  }) {
     if (isAdmin) return true;
-    switch (audience) {
-      case 'teachers':
-        return isTeacher;
-      case 'students':
-        return isViewer;
-      case 'both':
-      case 'all':
-        return isTeacher || isViewer;
-      default:
-        return true;
-    }
+    // Empty audiences (including legacy unknown values) reaches everyone.
+    if (audiences.isEmpty) return true;
+    return audiences.any(
+      (role) => switch (role) {
+        'teachers' => isTeacher,
+        'floorIncharge' => isFloorIncharge,
+        'students' => isViewer,
+        _ => false,
+      },
+    );
   }
 
-  String get audienceLabel => switch (audience) {
-    'teachers' => 'Teachers only',
-    'students' => 'Students only',
-    'both' => 'Teachers and students',
-    _ => 'Everyone',
-  };
+  String get audienceLabel {
+    if (audiences.isEmpty) return 'Everyone';
+    final labels = <String>[
+      if (audiences.contains('teachers')) 'Teachers',
+      if (audiences.contains('floorIncharge')) 'Floor In-Charges',
+      if (audiences.contains('students')) 'Students',
+    ];
+    if (labels.isEmpty || labels.length >= 3) return 'Everyone';
+    if (labels.length == 1) return '${labels.first} only';
+    return labels.join(' and ');
+  }
 
   factory Announcement.fromMap(String id, Map<String, dynamic> data) {
     final created = data['createdAt'];
+    final stored = List<String>.from(data['audiences'] as List? ?? const []);
     return Announcement(
       id: id,
       title: data['title'] as String? ?? '',
       body: data['body'] as String? ?? '',
-      audience: data['audience'] as String? ?? 'both',
+      audiences: stored.isNotEmpty
+          ? stored
+          : _legacyAudienceRoles(data['audience'] as String?),
       classIds: List<String>.from(data['classIds'] as List? ?? const []),
       imageUrls: List<String>.from(data['imageUrls'] as List? ?? const []),
       createdBy: data['createdBy'] as String?,
@@ -61,10 +75,18 @@ class Announcement {
   Map<String, dynamic> toMap({bool stampCreatedAt = true}) => {
     'title': title,
     'body': body,
-    'audience': audience,
+    'audiences': audiences,
     'classIds': classIds,
     'imageUrls': imageUrls,
     'createdBy': createdBy,
     if (stampCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
+  };
+
+  static List<String> _legacyAudienceRoles(String? audience) => switch (audience) {
+    'teachers' => const ['teachers'],
+    'floorIncharge' => const ['floorIncharge'],
+    'students' => const ['students'],
+    'both' || 'all' => const ['teachers', 'floorIncharge', 'students'],
+    _ => const [],
   };
 }

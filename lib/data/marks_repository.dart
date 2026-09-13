@@ -104,6 +104,7 @@ import 'paths.dart';
   Future<void> saveClassMarks({
     required Exam exam,
     required List<StudentMarks> rows,
+    Map<String, String> studentNames = const {},
   }) async {
     final batch = FirebaseFirestore.instance.batch();
     for (final row in rows) {
@@ -122,7 +123,64 @@ import 'paths.dart';
         SetOptions(merge: true),
       );
     }
+
+    // Persist a class-level analytics snapshot on the exam document so viewers
+    // can see topper/lowest/average percentages without reading other students'
+    // raw marks (which the security rules disallow for the viewer role).
+    batch.set(
+      _paths.exams.doc(exam.id),
+      _examAnalyticsUpdate(exam, rows, studentNames),
+      SetOptions(merge: true),
+    );
+
     await batch.commit();
+  }
+
+  /// Builds the analytics fields written to the exam document.
+  ///
+  /// Percentages are computed from obtained vs maximum totals so the math stays
+  /// correct even if a subject is not out of 100.
+  Map<String, dynamic> _examAnalyticsUpdate(
+    Exam exam,
+    List<StudentMarks> rows,
+    Map<String, String> studentNames,
+  ) {
+    final percentages = <String, double>{};
+    for (final row in rows) {
+      final obtained = row.scores.values.fold(0.0, (total, m) => total + m.obtained);
+      final maximum = row.scores.values.fold(0.0, (total, m) => total + m.maximum);
+      if (maximum <= 0) continue;
+      percentages[row.studentId] = obtained / maximum * 100;
+    }
+
+    if (percentages.isEmpty) {
+      return {
+        'classAverage': FieldValue.delete(),
+        'classHighest': FieldValue.delete(),
+        'classLowest': FieldValue.delete(),
+        'topperName': FieldValue.delete(),
+        'topperStudentId': FieldValue.delete(),
+        'lowestName': FieldValue.delete(),
+        'lowestStudentId': FieldValue.delete(),
+        'analyticsUpdatedAt': FieldValue.delete(),
+      };
+    }
+
+    final entries = percentages.entries.toList();
+    final highest = entries.reduce((a, b) => a.value >= b.value ? a : b);
+    final lowest = entries.reduce((a, b) => a.value <= b.value ? a : b);
+    final average = entries.fold(0.0, (total, e) => total + e.value) / entries.length;
+
+    return {
+      'classAverage': average,
+      'classHighest': highest.value,
+      'classLowest': lowest.value,
+      'topperName': studentNames[highest.key] ?? '',
+      'topperStudentId': highest.key,
+      'lowestName': studentNames[lowest.key] ?? '',
+      'lowestStudentId': lowest.key,
+      'analyticsUpdatedAt': FieldValue.serverTimestamp(),
+    };
   }
 
   /// Optional report-card image. Soft-fails on Spark / missing Storage.
