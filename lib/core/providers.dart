@@ -11,6 +11,7 @@ import '../data/roster_repository.dart';
 import '../data/timetable_repository.dart';
 import '../models/app_user.dart';
 import '../models/institution.dart';
+import 'app_theme.dart';
 import 'branding.dart';
 
 extension AsyncValueX<T> on AsyncValue<T> {
@@ -54,6 +55,11 @@ final institutionProvider = StreamProvider<Institution?>((ref) {
 final brandConfigProvider = Provider<BrandConfig>((ref) {
   final remote = ref.watch(institutionProvider).valueOrNull;
   return BrandConfig.current.mergeInstitution(remote);
+});
+
+final themeProvider = Provider<AppTheme>((ref) {
+  final id = ref.watch(sessionProvider).valueOrNull?.preferences.themeId;
+  return appThemeFromId(id);
 });
 
 final rosterRepositoryProvider = Provider<RosterRepository?>((ref) {

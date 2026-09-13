@@ -436,6 +436,21 @@ class AuthRepository {
     }
   }
 
+  /// Persists a single user preference under the `preferences` map on the
+  /// signed-in user's profile.
+  ///
+  /// Uses dot-notation so updating one preference never wipes sibling keys,
+  /// which keeps future preferences (locale, notifications, …) independent.
+  Future<void> updatePreference(String key, Object value) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw StateError('Sign in first.');
+    }
+    await InstitutionPaths(kDefaultInstitutionId).users.doc(user.uid).update({
+      'preferences.$key': value,
+    });
+  }
+
   Future<FirebaseApp> _secondaryApp() async {
     final existing = Firebase.apps.where((app) => app.name == _secondaryAppName);
     if (existing.isNotEmpty) return existing.first;

@@ -71,6 +71,7 @@ Flutter (lib/)  →  Firebase Auth
 - **Data access:** repositories in `lib/data/`, paths in `lib/data/paths.dart` (`InstitutionPaths`)
 - **UI:** feature screens under `lib/features/`
 - **Branding:** `lib/core/branding.dart` + `assets/branding/` (logo, background, app icon, splash). Optional Firestore `institutions/{id}.branding` overlays name/color/remote image URLs after login.
+- **Theming:** light + dark themes via a catalog in `lib/core/app_theme.dart`; the low-level builder and `StatusPalette` theme extension live in `lib/core/theme.dart`. Per-user choice is persisted in `users/{uid}.preferences.themeId` (`lib/models/user_preferences.dart`) and resolved by `themeProvider` in `lib/core/providers.dart`.
 
 ### Auth and roles (Spark path)
 
@@ -86,7 +87,7 @@ Under `institutions/default/`:
 
 | Collection | Purpose |
 |------------|---------|
-| `users` | Profiles: `admin` / `teacher` / `viewer` (`classIds`, `studentIds`) |
+| `users` | Profiles: `admin` / `teacher` / `viewer` (`classIds`, `studentIds`, `preferences` map for per-user settings like `themeId`) |
 | `classes` | Class/section/year, `teacherIds` (`AcademicClass` in Dart) |
 | `students` | Name, `classId`, `roll`, `viewerUids` |
 | `attendance` | Per class-day |
@@ -119,6 +120,7 @@ Bootstrap: signed-in user may **get** missing `institutions/default` and **creat
 | Announcements | Targeted to institution or class |
 | PTM | Slots, viewer booking, notes/docs |
 | FCM | Client stores token and subscribes to topics; **server send is production/Blaze only** |
+| Theme | Light (default) + dark; per-user picker on More; themes defined in `lib/core/app_theme.dart`, persisted in `users/{uid}.preferences.themeId` |
 
 ## Deployment modes (required)
 
@@ -293,6 +295,8 @@ Operator-facing copy of this checklist is in `README.md`.
 - Keep `viewer` as the parent+student role
 - Keep institution id `default` unless migrating tenancy
 - Ship one brand pack per customer binary (`brands/<id>` → `assets/branding`); do not hard-code logos or login backgrounds in widgets
+- Themes are data in `lib/core/app_theme.dart` (`AppTheme`: id + label + `BrandConfig → ThemeData` builder); add a theme there, don't branch on theme names in widgets
+- Brand `primaryColor` seeds every theme via `buildAppTheme(brand, brightness)`; brand-independent semantic colors (attendance %, etc.) live in `StatusPalette` in `lib/core/theme.dart`
 - Use `InstitutionPaths` / `institutionId` for tenancy; use `AcademicClass` for class/section records (not the institution itself)
 - Prefer Firestore profile checks in rules over custom claims while targeting the **no-cost** edition
 - Gate Functions/Storage/server FCM with `AppConfig` in `lib/core/app_config.dart` (`--dart-define=APP_EDITION=production`). Default is Spark.

@@ -265,7 +265,7 @@ class _PhotoThumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image = _image(96, 96);
+    final image = _image(context, 96, 96);
     return GestureDetector(
       onTap: () => _showFullScreen(context),
       child: onDelete == null
@@ -287,12 +287,13 @@ class _PhotoThumb extends StatelessWidget {
     );
   }
 
-  Widget _image(double width, double height) {
+  Widget _image(BuildContext context, double width, double height) {
+    final scheme = Theme.of(context).colorScheme;
     Widget fallback() => Container(
       width: width,
       height: height,
-      color: Colors.grey.shade300,
-      child: const Icon(Icons.broken_image_outlined),
+      color: scheme.surfaceContainerHighest,
+      child: Icon(Icons.broken_image_outlined, color: scheme.onSurfaceVariant),
     );
     if (photo.data != null && photo.data!.isNotEmpty) {
       try {

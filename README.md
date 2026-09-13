@@ -11,6 +11,8 @@ See `AGENTS.md` for architecture and the build/deploy switch (`lib/core/app_conf
 
 Roles: **admin**, **teacher**, **viewer** (parent and student share viewer).
 
+Users can switch between **Light** and **Dark** appearance from **More → Theme**; the choice is saved per user in Firestore (`users/{uid}.preferences.themeId`).
+
 ## Keyboard shortcuts
 
 Work on web/desktop (and any device with a hardware keyboard). Source of truth: `lib/core/keyboard_shortcuts.dart`.
