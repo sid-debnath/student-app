@@ -521,14 +521,15 @@ if (profile == null) {
         for (final row in await repo.watchMarks(exam.id).first)
           row.studentId: row,
       };
-      final subjectNames = {for (final s in subjects) s.id: s.name};
-
       for (final student in students) {
         final row = latest[student.id];
         if (row == null || row.scores.isEmpty) continue;
-        final namedScores = <String, double>{
+        // Store subject IDs (not display names) so the viewer always resolves
+        // the current subject name. Storing names here caused the report card to
+        // keep showing a subject's previous name after it was replaced.
+        final idScores = <String, double>{
           for (final entry in row.scores.entries)
-           subjectNames[entry.key] ?? entry.key: entry.value.obtained,
+            entry.key: entry.value.obtained,
         };
         await repo.publishReportCard(
           ReportCard(
@@ -536,7 +537,7 @@ if (profile == null) {
             studentId: student.id,
             classId: exam.classId,
             examType: exam.examType,
-            scores: namedScores,
+            scores: idScores,
             publishedAt: DateTime.now(),
             imageUrl: row.reportImageUrl,
           ),
@@ -580,25 +581,35 @@ class _ViewerReportCards extends ConsumerWidget {
             if (cards.isEmpty) {
               return const Center(child: Text('No published report cards yet.'));
             }
-            return StreamBuilder<List<Exam>>(
-              stream: classId.isEmpty
-                  ? Stream.value(const <Exam>[])
-                  : marks.watchExams(classId: classId),
-              builder: (context, examSnap) {
-                final exams = examSnap.data ?? const <Exam>[];
-                final examByType = <String, Exam>{
-                  for (final exam in exams)
-                    exam.examType.trim().toLowerCase(): exam,
+            return StreamBuilder<List<Subject>>(
+              stream: marks.watchSubjects(),
+              builder: (context, subjectSnap) {
+                final subjectNames = <String, String>{
+                  for (final subject in subjectSnap.data ?? const <Subject>[])
+                    subject.id: subject.name,
                 };
-                return ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    for (final card in cards)
-                      _ReportCardTile(
-                        card: card,
-                        exam: examByType[card.examType.trim().toLowerCase()],
-                      ),
-                  ],
+                return StreamBuilder<List<Exam>>(
+                  stream: classId.isEmpty
+                      ? Stream.value(const <Exam>[])
+                      : marks.watchExams(classId: classId),
+                  builder: (context, examSnap) {
+                    final exams = examSnap.data ?? const <Exam>[];
+                    final examByType = <String, Exam>{
+                      for (final exam in exams)
+                        exam.examType.trim().toLowerCase(): exam,
+                    };
+                    return ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        for (final card in cards)
+                          _ReportCardTile(
+                            card: card,
+                            exam: examByType[card.examType.trim().toLowerCase()],
+                            subjectNames: subjectNames,
+                          ),
+                      ],
+                    );
+                  },
                 );
               },
             );
@@ -610,10 +621,15 @@ class _ViewerReportCards extends ConsumerWidget {
 }
 
 class _ReportCardTile extends StatelessWidget {
-  const _ReportCardTile({required this.card, this.exam});
+  const _ReportCardTile({
+    required this.card,
+    this.exam,
+    this.subjectNames = const {},
+  });
 
   final ReportCard card;
   final Exam? exam;
+  final Map<String, String> subjectNames;
 
   @override
   Widget build(BuildContext context) {
@@ -688,7 +704,9 @@ class _ReportCardTile extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(
                     children: [
-                      Expanded(child: Text(entry.key)),
+                      Expanded(
+                        child: Text(subjectNames[entry.key] ?? entry.key),
+                      ),
                       Text(_formatMark(entry.value)),
                     ],
                   ),
