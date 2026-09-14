@@ -12,7 +12,6 @@ import '../features/home/home_shell.dart';
 import '../features/home/more_screen.dart';
 import '../features/homework/homework_screen.dart';
 import '../features/marks/marks_screen.dart';
-import '../features/ptm/ptm_screen.dart';
 import '../features/roster/roster_screen.dart';
 import '../features/roster/users_screen.dart';
 import '../features/timetable/timetable_screen.dart';
@@ -87,7 +86,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const TimetableScreen(),
           ),
           GoRoute(path: '/marks', builder: (context, state) => const MarksScreen()),
-          GoRoute(path: '/ptm', builder: (context, state) => const PtmScreen()),
         ],
       ),
     ],

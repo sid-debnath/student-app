@@ -166,20 +166,6 @@ service cloud.firestore {
         allow read: if passwordReady(iid);
         allow write: if isAdmin(iid);
       }
-      match /ptmSlots/{docId} {
-        allow read: if passwordReady(iid);
-        allow create, update: if isAdmin(iid) || (isStaff(iid) && request.resource.data.teacherId == request.auth.uid);
-        allow delete: if isAdmin(iid) || isStaff(iid);
-      }
-      match /ptmBookings/{docId} {
-        allow read: if passwordReady(iid);
-        allow create: if isAdmin(iid) || isViewer(iid);
-        allow update, delete: if isAdmin(iid) || isStaff(iid);
-      }
-      match /ptmNotes/{docId} {
-        allow read: if passwordReady(iid);
-        allow write: if isAdmin(iid) || isStaff(iid);
-      }
     }
   }
 }

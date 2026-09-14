@@ -8,6 +8,8 @@ import '../../models/app_user.dart';
 import '../../models/student.dart';
 import '../../widgets/async_body.dart';
 import '../../widgets/brand_logo.dart';
+import 'admin_dashboard.dart';
+import 'dashboard_actions.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -46,6 +48,9 @@ class DashboardScreen extends ConsumerWidget {
           if (user.isStudentAccount) {
             return _StudentDashboard(user: user);
           }
+          if (user.isAdmin) {
+            return AdminDashboard(user: user);
+          }
           return _StaffDashboard(user: user);
         },
       ),
@@ -60,7 +65,7 @@ class _StaffDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final actions = _actions(user.role);
+    final actions = dashboardActions(user.role);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -191,7 +196,7 @@ class _ParentDashboard extends ConsumerWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final action in _actions(UserRole.viewer))
+            for (final action in dashboardActions(UserRole.viewer))
               ActionChip(
                 avatar: Icon(action.icon, size: 18),
                 label: Text(action.label),
@@ -233,7 +238,7 @@ class _StudentDashboard extends ConsumerWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final action in _actions(UserRole.viewer))
+              for (final action in dashboardActions(UserRole.viewer))
                 ActionChip(
                   avatar: Icon(action.icon, size: 18),
                   label: Text(action.label),
@@ -269,52 +274,4 @@ String _studentSubtitle(Student student, List<AcademicClass> classes) {
       .firstOrNull;
   final roll = student.roll.isEmpty ? '' : ' · Roll ${student.roll}';
   return '${classLabel ?? 'No class'}$roll';
-}
-
-class _Action {
-  const _Action(this.label, this.path, this.icon);
-  final String label;
-  final String path;
-  final IconData icon;
-}
-
-List<_Action> _actions(UserRole role) {
-  switch (role) {
-    case UserRole.admin:
-      return const [
-        _Action('Roster', '/roster', Icons.groups_outlined),
-        _Action('Invite users', '/users', Icons.person_add_outlined),
-        _Action('Timetable', '/timetable', Icons.calendar_view_week_outlined),
-        _Action('Announcements', '/announcements', Icons.campaign_outlined),
-        _Action('Exams & reports', '/marks', Icons.grade_outlined),
-        _Action('PTM', '/ptm', Icons.event_outlined),
-      ];
-    case UserRole.teacher:
-      return const [
-        _Action('Attendance', '/attendance', Icons.fact_check_outlined),
-        _Action('Homework', '/homework', Icons.menu_book_outlined),
-        _Action('Marks', '/marks', Icons.grade_outlined),
-        _Action('Timetable', '/timetable', Icons.calendar_view_week_outlined),
-        _Action('Announcements', '/announcements', Icons.campaign_outlined),
-        _Action('PTM slots', '/ptm', Icons.event_outlined),
-      ];
-    case UserRole.floorIncharge:
-      return const [
-        _Action('Attendance', '/attendance', Icons.fact_check_outlined),
-        _Action('Homework', '/homework', Icons.menu_book_outlined),
-        _Action('Marks', '/marks', Icons.grade_outlined),
-        _Action('Timetable', '/timetable', Icons.calendar_view_week_outlined),
-        _Action('Announcements', '/announcements', Icons.campaign_outlined),
-        _Action('PTM slots', '/ptm', Icons.event_outlined),
-      ];
-    case UserRole.viewer:
-      return const [
-        _Action('Attendance', '/attendance', Icons.fact_check_outlined),
-        _Action('Homework', '/homework', Icons.menu_book_outlined),
-        _Action('Timetable', '/timetable', Icons.calendar_view_week_outlined),
-        _Action('Report card', '/marks', Icons.grade_outlined),
-        _Action('Announcements', '/announcements', Icons.campaign_outlined),
-        _Action('Book PTM', '/ptm', Icons.event_outlined),
-      ];
-  }
 }

@@ -39,30 +39,6 @@
         { "fieldPath": "studentId", "order": "ASCENDING" },
         { "fieldPath": "publishedAt", "order": "DESCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "ptmSlots",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "teacherId", "order": "ASCENDING" },
-        { "fieldPath": "start", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "ptmBookings",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "slotId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "ptmNotes",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []

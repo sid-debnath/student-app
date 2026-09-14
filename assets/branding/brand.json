@@ -1,7 +1,7 @@
 {
   "id": "default",
   "displayName": "Student App",
-  "tagline": "Attendance, homework, timetable, marks, announcements, and PTM.",
+  "tagline": "Attendance, homework, timetable, marks, and announcements.",
   "primaryColor": "#0F6A8A",
   "logo": "logo.png",
   "background": "background.png",

@@ -100,12 +100,6 @@ List<AppShortcut> navigationShortcuts(UserRole role) {
       activators: [SingleActivator(LogicalKeyboardKey.keyN, alt: true)],
     ),
     AppShortcut(
-      label: 'PTM',
-      path: '/ptm',
-      keysLabel: 'Alt + P',
-      activators: [SingleActivator(LogicalKeyboardKey.keyP, alt: true)],
-    ),
-    AppShortcut(
       label: 'Account details',
       path: '/account',
       keysLabel: 'Alt + C',
@@ -133,7 +127,6 @@ Set<String> _allowedPaths(UserRole role) => switch (role) {
     '/timetable',
     '/marks',
     '/announcements',
-    '/ptm',
     '/more',
   },
   UserRole.teacher || UserRole.floorIncharge => const {
@@ -143,7 +136,6 @@ Set<String> _allowedPaths(UserRole role) => switch (role) {
     '/timetable',
     '/marks',
     '/announcements',
-    '/ptm',
     '/more',
   },
   UserRole.viewer => const {
@@ -154,7 +146,6 @@ Set<String> _allowedPaths(UserRole role) => switch (role) {
     '/timetable',
     '/marks',
     '/announcements',
-    '/ptm',
     '/more',
   },
 };

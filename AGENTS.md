@@ -30,7 +30,7 @@ Always apply best design principles to all code and Firebase architecture:
 
 ## Product
 
-Flutter app for attendance, homework, timetable, marks/report cards, announcements, and parent–teacher meetings (PTM). Intended for schools, colleges, and other educational institutions.
+Flutter app for attendance, homework, timetable, marks/report cards, and announcements. Intended for schools, colleges, and other educational institutions.
 
 - **Roles:** `admin`, `teacher`, `viewer`
 - **Viewer** is the shared parent **and** student UX (not a separate student role)
@@ -95,7 +95,6 @@ Under `institutions/default/`:
 | `timetable/{classId}/periods` | Weekly periods |
 | `exams`, `marks`, `reportCards` | Assessments |
 | `announcements` | Institution/class news |
-| `ptmSlots`, `ptmBookings`, `ptmNotes` | PTM |
 
 Rules: `firebase/firestore.rules`. Indexes: `firebase/firestore.indexes.json`. Deploy with `firebase deploy --only firestore`.
 
@@ -103,8 +102,8 @@ Bootstrap: signed-in user may **get** missing `institutions/default` and **creat
 
 ### Navigation (role tabs)
 
-- **Admin:** Home, Roster, News, More (Users, Timetable, Exams, PTM, Homework, Attendance)
-- **Teacher / viewer:** Home, Attendance, Homework, More (Timetable, Marks, Announcements, PTM)
+- **Admin:** Home, Roster, News, More (Users, Timetable, Exams, Homework, Attendance)
+- **Teacher / viewer:** Home, Attendance, Homework, More (Timetable, Marks, Announcements)
 
 ## Features (implemented)
 
@@ -118,7 +117,6 @@ Bootstrap: signed-in user may **get** missing `institutions/default` and **creat
 | Timetable | Weekly periods by class |
 | Marks / report cards | Exams, subject marks, published snapshots |
 | Announcements | Targeted to institution or class |
-| PTM | Slots, viewer booking, notes/docs |
 | FCM | Client stores token and subscribes to topics; **server send is production/Blaze only** |
 | Theme | Light (default) + dark; per-user picker on More; themes defined in `lib/core/app_theme.dart`, persisted in `users/{uid}.preferences.themeId` |
 
@@ -128,7 +126,7 @@ The app has **two supported editions**. Default for development and institution 
 
 | Edition | Google billing | Goal |
 |---------|----------------|------|
-| **No-cost (Spark)** | Firebase Spark — no billing account | App must run end-to-end: Auth, Firestore CRUD, first-time setup, roster, attendance, homework, timetable, marks, announcements, PTM booking |
+| **No-cost (Spark)** | Firebase Spark — no billing account | App must run end-to-end: Auth, Firestore CRUD, first-time setup, roster, attendance, homework, timetable, marks, announcements |
 | **Production (Blaze)** | Pay-as-you-go / Blaze | Enterprise-style scale, availability, and extras: Cloud Functions, Storage, server FCM, App Check, backups, Hosting, store builds |
 
 **Agent rule:** every feature must work on Spark unless the user is explicitly building the production edition. Do not add a hard dependency on Cloud Functions, Cloud Storage, or paid APIs for core institution workflows. Optional production services go behind “nice to have” paths that fail softly on Spark (e.g. skip FCM send, skip file upload if no bucket).
@@ -146,7 +144,7 @@ Must keep working:
 Acceptable Spark limits:
 
 - No Cloud Functions deploy
-- No Storage bucket / file attachments (PTM notes can stay text-only)
+- No Storage bucket / file attachments
 - No server-side push; in-app Firestore listeners are enough
 - No custom claims
 - Regional Firestore only (`asia-south1`); no multi-region
@@ -157,7 +155,7 @@ Turn on when the institution needs reliability and scale. Same Flutter app; enab
 
 1. **Billing:** upgrade Firebase/GCP to **Blaze**. Set a **budget alert**.
 2. **Cloud Functions:** `firebase deploy --only functions` for Admin SDK user create, custom claims, FCM send on writes. Then rules may optionally use claims; keep Firestore profile as fallback so Spark code paths still compile.
-3. **Storage:** Console → Get started (prefer `asia-south1`), then `firebase deploy --only storage`. Use for PTM docs, homework files, report PDFs.
+3. **Storage:** Console → Get started (prefer `asia-south1`), then `firebase deploy --only storage`. Use for homework files, report PDFs.
 4. **Messaging:** Functions send to topics; iOS needs APNs key; Android needs Play/FCM setup.
 5. **Availability / scale:** Firestore PITR and scheduled backups; consider multi-region later if SLA requires it; CDN via Firebase Hosting for web.
 6. **Hardening:** App Check, authorized Auth domains, release SHA-1/256, App Store/Play signing, privacy policy, data-safety forms.
@@ -218,13 +216,13 @@ This is **one Flutter app and one Git repo**, not two codebases. There is no sec
 | Always on (both editions) | Production-only (`AppConfig`) |
 |---------------------------|-------------------------------|
 | Email Auth, Firestore, rules on user docs | Cloud Functions callables |
-| First-time setup, roster, attendance, homework, timetable, marks, announcements, PTM text | Storage uploads |
+| First-time setup, roster, attendance, homework, timetable, marks, announcements | Storage uploads |
 | Client FCM **subscribe** | Functions **send** FCM |
 | go_router / Riverpod screens | App Check, PITR, multi-region (console, not a Dart flag) |
 
 **5. Not a store “lite vs pro” SKU** — parents/teachers install one app. Spark vs production is an **operator** choice (how the institution’s Firebase project is billed and which binary you ship). Changing edition does not change roles or screens.
 
-**Today:** `AppConfig` gates Functions, Storage, and server FCM. Spark is the default. Production builds try callables first, then the client Spark path. PTM file upload runs only when `AppConfig.useStorage` is true and still saves the text note if Storage is missing.
+**Today:** `AppConfig` gates Functions, Storage, and server FCM. Spark is the default. Production builds try callables first, then the client Spark path.
 
 ## What is not done yet (production gap)
 

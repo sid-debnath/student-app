@@ -28,7 +28,6 @@ Work on web/desktop (and any device with a hardware keyboard). Source of truth: 
 | Timetable | `Alt + T` |
 | Marks & reports | `Alt + G` |
 | Announcements | `Alt + N` |
-| PTM | `Alt + P` |
 | More | `Alt + M` |
 | Roster (admin) | `Alt + R` |
 | Users (admin) | `Alt + U` |

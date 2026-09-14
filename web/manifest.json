@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#0F6A8A",
     "theme_color": "#0F6A8A",
-    "description": "Attendance, homework, timetable, marks, announcements, and PTM.",
+    "description": "Attendance, homework, timetable, marks, and announcements.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
