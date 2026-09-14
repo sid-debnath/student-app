@@ -101,7 +101,7 @@ class _PrimaryStats extends StatelessWidget {
           label: 'Total students',
           value: '${data.totalStudents}',
           color: theme.colorScheme.primary,
-          onTap: () => context.go('/roster'),
+          onTap: () => context.go('/students'),
         ),
         _StatCard(
           icon: Icons.check_circle_outline,

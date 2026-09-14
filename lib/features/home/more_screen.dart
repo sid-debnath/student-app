@@ -18,6 +18,7 @@ class MoreScreen extends ConsumerWidget {
     final items = switch (role) {
       UserRole.admin => const [
         _Item('Users', '/users', Icons.manage_accounts_outlined),
+        _Item('Students', '/students', Icons.school_outlined),
         _Item('Timetable', '/timetable', Icons.calendar_view_week_outlined),
         _Item('Exams & reports', '/marks', Icons.grade_outlined),
         _Item('Homework', '/homework', Icons.menu_book_outlined),

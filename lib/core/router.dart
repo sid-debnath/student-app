@@ -13,6 +13,7 @@ import '../features/home/more_screen.dart';
 import '../features/homework/homework_screen.dart';
 import '../features/marks/marks_screen.dart';
 import '../features/roster/roster_screen.dart';
+import '../features/roster/students_screen.dart';
 import '../features/roster/users_screen.dart';
 import '../features/timetable/timetable_screen.dart';
 import 'providers.dart';
@@ -63,6 +64,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/', builder: (context, state) => const DashboardScreen()),
           GoRoute(path: '/roster', builder: (context, state) => const RosterScreen()),
+          GoRoute(
+            path: '/students',
+            builder: (context, state) => const StudentsScreen(),
+          ),
           GoRoute(
             path: '/attendance',
             builder: (context, state) => const AttendanceScreen(),
