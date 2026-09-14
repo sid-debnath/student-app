@@ -813,7 +813,7 @@ class _DeleteStudentDialogState extends State<_DeleteStudentDialog> {
         children: [
           Text(
             'This removes ${widget.student.name} and related attendance, marks, '
-            'report cards, and PTM data.'
+            'and report cards.'
             '${login == null ? '' : ' It also permanently deletes the linked '
                 'login ${login.email} so the email can be recreated as a new account.'}',
           ),

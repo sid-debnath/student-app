@@ -28,7 +28,7 @@ class BrandConfig {
   static const fallback = BrandConfig(
     id: 'default',
     displayName: 'Student App',
-    tagline: 'Attendance, homework, timetable, marks, announcements, and PTM.',
+    tagline: 'Attendance, homework, timetable, marks, and announcements.',
     primaryColor: Color(0xFF0F6A8A),
     logoAsset: 'assets/branding/logo.png',
     backgroundAsset: 'assets/branding/background.png',

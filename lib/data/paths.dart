@@ -23,9 +23,6 @@ class InstitutionPaths {
   CollectionReference<Map<String, dynamic>> get marks => col('marks');
   CollectionReference<Map<String, dynamic>> get reportCards => col('reportCards');
   CollectionReference<Map<String, dynamic>> get announcements => col('announcements');
-  CollectionReference<Map<String, dynamic>> get ptmSlots => col('ptmSlots');
-  CollectionReference<Map<String, dynamic>> get ptmBookings => col('ptmBookings');
-  CollectionReference<Map<String, dynamic>> get ptmNotes => col('ptmNotes');
 
   CollectionReference<Map<String, dynamic>> periods(String classId) =>
       col('timetable').doc(classId).collection('periods');

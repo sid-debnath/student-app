@@ -239,7 +239,7 @@ class RosterRepository {
 
   Future<void> deleteStudent(String id) => deleteStudentCompletely(id);
 
-  /// Removes a roster student, their attendance/marks/PTM rows, and any
+  /// Removes a roster student, their attendance/marks rows, and any
   /// exclusive student login profiles linked only to this student.
   ///
   /// Returns exclusive [AppUser]s that still need Firebase Auth deletion by the
@@ -324,8 +324,6 @@ class RosterRepository {
 
     await deleteWhere(_paths.marks);
     await deleteWhere(_paths.reportCards);
-    await deleteWhere(_paths.ptmBookings);
-    await deleteWhere(_paths.ptmNotes);
 
     if (classId != null && classId.isNotEmpty) {
       final attendance = await _paths.attendance

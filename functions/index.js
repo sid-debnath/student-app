@@ -247,15 +247,4 @@ exports.onReportCardPublished = onDocumentCreated(
     );
   },
 );
-exports.onPtmBooked = onDocumentCreated(
-  "institutions/{institutionId}/ptmBookings/{id}",
-  async (event) => {
-    const data = event.data?.data() || {};
-    await notifyTopic(
-      event.params.institutionId,
-      null,
-      "PTM booking",
-      "A parent-teacher meeting slot was booked.",
-    );
-  },
-);
+

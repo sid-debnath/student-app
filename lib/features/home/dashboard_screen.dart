@@ -287,7 +287,6 @@ List<_Action> _actions(UserRole role) {
         _Action('Timetable', '/timetable', Icons.calendar_view_week_outlined),
         _Action('Announcements', '/announcements', Icons.campaign_outlined),
         _Action('Exams & reports', '/marks', Icons.grade_outlined),
-        _Action('PTM', '/ptm', Icons.event_outlined),
       ];
     case UserRole.teacher:
       return const [
@@ -296,7 +295,6 @@ List<_Action> _actions(UserRole role) {
         _Action('Marks', '/marks', Icons.grade_outlined),
         _Action('Timetable', '/timetable', Icons.calendar_view_week_outlined),
         _Action('Announcements', '/announcements', Icons.campaign_outlined),
-        _Action('PTM slots', '/ptm', Icons.event_outlined),
       ];
     case UserRole.floorIncharge:
       return const [
@@ -305,7 +303,6 @@ List<_Action> _actions(UserRole role) {
         _Action('Marks', '/marks', Icons.grade_outlined),
         _Action('Timetable', '/timetable', Icons.calendar_view_week_outlined),
         _Action('Announcements', '/announcements', Icons.campaign_outlined),
-        _Action('PTM slots', '/ptm', Icons.event_outlined),
       ];
     case UserRole.viewer:
       return const [
@@ -314,7 +311,6 @@ List<_Action> _actions(UserRole role) {
         _Action('Timetable', '/timetable', Icons.calendar_view_week_outlined),
         _Action('Report card', '/marks', Icons.grade_outlined),
         _Action('Announcements', '/announcements', Icons.campaign_outlined),
-        _Action('Book PTM', '/ptm', Icons.event_outlined),
       ];
   }
 }

@@ -6,7 +6,6 @@ import '../data/attendance_repository.dart';
 import '../data/auth_repository.dart';
 import '../data/homework_repository.dart';
 import '../data/marks_repository.dart';
-import '../data/ptm_repository.dart';
 import '../data/roster_repository.dart';
 import '../data/timetable_repository.dart';
 import '../models/app_user.dart';
@@ -90,9 +89,4 @@ final marksRepositoryProvider = Provider<MarksRepository?>((ref) {
 final announcementRepositoryProvider = Provider<AnnouncementRepository?>((ref) {
   final institutionId = ref.watch(institutionIdProvider);
   return institutionId == null ? null : AnnouncementRepository(institutionId);
-});
-
-final ptmRepositoryProvider = Provider<PtmRepository?>((ref) {
-  final institutionId = ref.watch(institutionIdProvider);
-  return institutionId == null ? null : PtmRepository(institutionId);
 });
