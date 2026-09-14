@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image/image.dart' as img;
 import 'package:uuid/uuid.dart';
 
+import '../core/app_config.dart';
 import '../models/homework.dart';
 import '../models/homework_file.dart';
 import 'paths.dart';
@@ -23,6 +24,8 @@ class HomeworkRepository {
   final String institutionId;
   final InstitutionPaths _paths;
   final _uuid = const Uuid();
+
+  static const _maxDocumentBytes = 700 * 1024; // keep base64 under the 1 MiB doc cap
 
   Stream<List<Homework>> watch({String? classId}) {
     Query<Map<String, dynamic>> query = _paths.homework;
@@ -74,18 +77,21 @@ class HomeworkRepository {
     required HomeworkAttachment file,
   }) async {
     final fileId = _uuid.v4();
+    final mime = _contentType(file.fileName);
+
     if (_isVideo(file.fileName)) {
+      return _saveToStorage(homeworkId, fileId, file, mime, kind: 'video');
+    }
+
+    if (_isImage(file.fileName)) {
+      final jpeg = _compressImage(file.bytes);
+      if (jpeg == null) return false;
       try {
-        final ref = FirebaseStorage.instance.ref(
-          'institutions/$institutionId/homework/$homeworkId/${file.fileName}',
-        );
-        await ref.putData(file.bytes, SettableMetadata(contentType: _contentType(file.fileName)));
-        final url = await ref.getDownloadURL();
         await _paths.homeworkFiles(homeworkId).doc(fileId).set({
           'name': file.fileName,
-          'kind': 'video',
-          'mime': _contentType(file.fileName),
-          'url': url,
+          'kind': 'image',
+          'mime': 'image/jpeg',
+          'data': base64Encode(jpeg),
         });
         return true;
       } catch (_) {
@@ -93,14 +99,44 @@ class HomeworkRepository {
       }
     }
 
-    final jpeg = _compressImage(file.bytes);
-    if (jpeg == null) return false;
+    // Documents (PDF, Word, Excel, …) and any other file type. Small files are
+    // stored inline as base64 (Spark-safe); larger ones go to Storage on Blaze.
+    if (file.bytes.lengthInBytes <= _maxDocumentBytes) {
+      try {
+        await _paths.homeworkFiles(homeworkId).doc(fileId).set({
+          'name': file.fileName,
+          'kind': 'document',
+          'mime': mime,
+          'data': base64Encode(file.bytes),
+        });
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    return _saveToStorage(homeworkId, fileId, file, mime, kind: 'document');
+  }
+
+  Future<bool> _saveToStorage(
+    String homeworkId,
+    String fileId,
+    HomeworkAttachment file,
+    String mime, {
+    required String kind,
+  }) async {
+    if (!AppConfig.useStorage) return false;
     try {
+      final ref = FirebaseStorage.instance.ref(
+        'institutions/$institutionId/homework/$homeworkId/${file.fileName}',
+      );
+      await ref.putData(file.bytes, SettableMetadata(contentType: mime));
+      final url = await ref.getDownloadURL();
       await _paths.homeworkFiles(homeworkId).doc(fileId).set({
         'name': file.fileName,
-        'kind': 'image',
-        'mime': 'image/jpeg',
-        'data': base64Encode(jpeg),
+        'kind': kind,
+        'mime': mime,
+        'url': url,
       });
       return true;
     } catch (_) {
@@ -133,14 +169,42 @@ class HomeworkRepository {
 
   String _contentType(String fileName) {
     final lower = fileName.toLowerCase();
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
     if (lower.endsWith('.png')) return 'image/png';
     if (lower.endsWith('.gif')) return 'image/gif';
     if (lower.endsWith('.webp')) return 'image/webp';
+    if (lower.endsWith('.bmp')) return 'image/bmp';
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.doc')) return 'application/msword';
+    if (lower.endsWith('.docx')) {
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    }
+    if (lower.endsWith('.xls')) return 'application/vnd.ms-excel';
+    if (lower.endsWith('.xlsx')) {
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    }
+    if (lower.endsWith('.ppt')) return 'application/vnd.ms-powerpoint';
+    if (lower.endsWith('.pptx')) {
+      return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    }
+    if (lower.endsWith('.txt')) return 'text/plain';
+    if (lower.endsWith('.csv')) return 'text/csv';
+    if (lower.endsWith('.zip')) return 'application/zip';
     if (lower.endsWith('.mp4')) return 'video/mp4';
     if (lower.endsWith('.webm')) return 'video/webm';
     if (lower.endsWith('.mov')) return 'video/quicktime';
     if (lower.endsWith('.m4v')) return 'video/x-m4v';
-    return 'image/jpeg';
+    return 'application/octet-stream';
+  }
+
+  bool _isImage(String fileName) {
+    final lower = fileName.toLowerCase();
+    return lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.png') ||
+        lower.endsWith('.gif') ||
+        lower.endsWith('.webp') ||
+        lower.endsWith('.bmp');
   }
 
   bool _isVideo(String fileName) {

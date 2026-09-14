@@ -10,13 +10,14 @@ class HomeworkFile {
 
   final String id;
   final String name;
-  final String kind; // image | video
+  final String kind; // image | video | document
   final String mime;
-  final String? data; // base64 jpeg for Spark-safe image display
+  final String? data; // base64 payload for Spark-safe inline files (images & small documents)
   final String? url;
 
   bool get isImage => kind == 'image';
   bool get isVideo => kind == 'video';
+  bool get isDocument => kind == 'document';
 
   factory HomeworkFile.fromMap(String id, Map<String, dynamic> data) {
     return HomeworkFile(
