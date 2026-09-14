@@ -32,6 +32,19 @@ class AttendanceRepository {
         );
   }
 
+  /// Watches every class's attendance record for a single [date]
+  /// (`yyyy-MM-dd`). Used by the admin dashboard to compute the day's totals.
+  Stream<List<AttendanceRecord>> watchForDate(String date) {
+    return _paths.attendance
+        .where('date', isEqualTo: date)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((doc) => AttendanceRecord.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
+  }
+
   Future<void> save(AttendanceRecord record) {
     return _paths.attendance.doc(docId(record.classId, record.date)).set({
       ...record.toMap(),
